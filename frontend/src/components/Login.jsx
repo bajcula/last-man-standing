@@ -24,7 +24,7 @@ function Login() {
 
   return (
     <div className="auth-container">
-      <h2>Last Man Standing - Login</h2>
+      <h2 style={{ color: '#000000' }}>Last Man Standing - Login</h2>
       {error && <div className="error">{error}</div>}
       
       <form onSubmit={handleSubmit}>

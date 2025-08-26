@@ -25,7 +25,7 @@ const teams = [
 ];
 
 async function addTeams() {
-  const baseURL = 'http://127.0.0.1:8090';
+  const baseURL = process.env.POCKETBASE_URL || 'http://127.0.0.1:8090';
   
   // Load credentials from environment variables
   const email = process.env.ADMIN_EMAIL;

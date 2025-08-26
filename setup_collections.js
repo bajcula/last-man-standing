@@ -1,7 +1,7 @@
 require('dotenv').config();
 const axios = require('axios');
 
-const baseURL = 'http://127.0.0.1:8090';
+const baseURL = process.env.POCKETBASE_URL || 'http://127.0.0.1:8090';
 
 // Load credentials from environment variables
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
