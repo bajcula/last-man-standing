@@ -53,10 +53,22 @@ function Login() {
         </button>
       </form>
 
-      <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#e8f4fd', borderRadius: '8px', border: '1px solid #b8daff' }}>
-        <strong>🔐 Account Required</strong>
-        <p>Don't have an account? Contact an administrator to create your account.</p>
-        <p>They will provide your email and password credentials.</p>
+      <div style={{ 
+        marginTop: '20px', 
+        padding: '15px', 
+        backgroundColor: '#e8f4fd', 
+        borderRadius: '8px', 
+        border: '1px solid #b8daff',
+        fontFamily: 'Georgia, serif',
+        fontSize: '16px'
+      }}>
+        <strong style={{ fontSize: '18px' }}>🔐 Account Required</strong>
+        <p style={{ marginTop: '10px', lineHeight: '1.6' }}>
+          Don't have an account? Contact an administrator to create your account.
+        </p>
+        <p style={{ marginTop: '8px', lineHeight: '1.6' }}>
+          They will provide your email and password credentials.
+        </p>
       </div>
     </div>
   );
