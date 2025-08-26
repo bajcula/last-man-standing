@@ -806,54 +806,8 @@ function Admin() {
                 </small>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                onClick={async () => {
-                  setLoading(true);
-                  setMessage('');
-                  
-                  try {
-                    // Fetch matches for the week to auto-set deadline
-                    const apiUrl = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4328&r=${week}&s=2025-2026`;
-                    const response = await fetch(apiUrl);
-                    const data = await response.json();
-                    
-                    if (data.events && data.events.length > 0) {
-                      // Find the earliest match
-                      let earliestMatch = data.events[0];
-                      for (const match of data.events) {
-                        const matchDate = new Date(match.dateEvent + ' ' + match.strTime);
-                        const earliestDate = new Date(earliestMatch.dateEvent + ' ' + earliestMatch.strTime);
-                        if (matchDate < earliestDate) {
-                          earliestMatch = match;
-                        }
-                      }
-                      
-                      // Set deadline 2 hours before the earliest match
-                      const firstMatchTime = new Date(earliestMatch.dateEvent + ' ' + earliestMatch.strTime);
-                      const autoDeadline = new Date(firstMatchTime.getTime() - (2 * 60 * 60 * 1000));
-                      
-                      // Convert to datetime-local format
-                      const localDateTime = new Date(autoDeadline.getTime() - autoDeadline.getTimezoneOffset() * 60000)
-                        .toISOString()
-                        .slice(0, 16);
-                      
-                      setDeadline(localDateTime);
-                      setMessage(`Auto-set deadline to 2 hours before ${earliestMatch.strHomeTeam} vs ${earliestMatch.strAwayTeam}`);
-                    } else {
-                      setMessage('No matches found for this week');
-                    }
-                  } catch (err) {
-                    setMessage('Failed to fetch matches');
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                disabled={loading}
-                style={{ backgroundColor: '#28a745', color: 'white' }}
-              >
-                🎯 Auto-Set (2hr before first match)
-              </button>
+            <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#e8f5e8', borderRadius: '5px', fontSize: '14px' }}>
+              ℹ️ Deadlines are automatically set in the background to 2 hours before the first match of each week
             </div>
           </div>
 
