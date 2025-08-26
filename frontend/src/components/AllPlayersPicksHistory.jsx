@@ -86,15 +86,26 @@ function AllPlayersPicksHistory() {
         sort: 'week_number',
       });
 
-      // Filter picks to only show weeks where deadline has passed
-      const now = new Date();
-      const closedWeeks = deadlines
-        .filter(d => new Date(d.deadline_time) < now || d.is_closed)
-        .map(d => d.week_number);
+      // Check if current user is admin
+      const currentUser = pb.authStore.model;
+      const isAdmin = currentUser?.isAdmin || false;
 
-      const filteredPicks = picks.filter(pick => 
-        closedWeeks.includes(pick.week_number)
-      );
+      // Filter picks to only show weeks where deadline has passed (unless user is admin)
+      let filteredPicks;
+      if (isAdmin) {
+        // Admin can see all picks, including current week
+        filteredPicks = picks;
+      } else {
+        // Regular users only see picks after deadline has passed
+        const now = new Date();
+        const closedWeeks = deadlines
+          .filter(d => new Date(d.deadline_time) < now || d.is_closed)
+          .map(d => d.week_number);
+
+        filteredPicks = picks.filter(pick => 
+          closedWeeks.includes(pick.week_number)
+        );
+      }
 
       // Get all unique users and their elimination status
       const userMap = new Map();

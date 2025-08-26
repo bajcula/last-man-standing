@@ -36,6 +36,11 @@ function Admin() {
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [matchesMessage, setMatchesMessage] = useState('');
 
+  // All picks viewing state
+  const [allPicks, setAllPicks] = useState([]);
+  const [picksLoading, setPicksLoading] = useState(false);
+  const [picksWeek, setPicksWeek] = useState(3); // Current week
+
   useEffect(() => {
     loadData();
   }, []);
@@ -684,6 +689,18 @@ function Admin() {
           }}
         >
           Mark Winners
+        </button>
+        <button 
+          onClick={() => setActiveTab('picks')}
+          style={{ 
+            padding: '10px 20px', 
+            border: 'none', 
+            backgroundColor: activeTab === 'picks' ? '#28a745' : 'transparent',
+            color: activeTab === 'picks' ? 'white' : '#28a745',
+            cursor: 'pointer'
+          }}
+        >
+          View All Picks
         </button>
         <button 
           onClick={() => setActiveTab('reset')}
