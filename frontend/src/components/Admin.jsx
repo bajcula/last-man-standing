@@ -412,7 +412,7 @@ function Admin() {
         }
       }
 
-      // Fetch next week's matches to set deadline 2 hours before first match
+      // Fetch next week's matches to set deadline 6 hours before first match
       let nextWeekDeadline = new Date();
       
       try {
@@ -431,12 +431,12 @@ function Admin() {
             }
           }
           
-          // Set deadline 2 hours before the earliest match
+          // Set deadline 6 hours before the earliest match
           const firstMatchTime = new Date(earliestMatch.dateEvent + ' ' + earliestMatch.strTime);
-          nextWeekDeadline = new Date(firstMatchTime.getTime() - (2 * 60 * 60 * 1000)); // 2 hours before
+          nextWeekDeadline = new Date(firstMatchTime.getTime() - (6 * 60 * 60 * 1000)); // 6 hours before
           
           console.log(`⚽ First match Week ${selectedWeek + 1}: ${earliestMatch.strHomeTeam} vs ${earliestMatch.strAwayTeam} at ${firstMatchTime.toLocaleString()}`);
-          console.log(`⏰ Setting deadline 2 hours before: ${nextWeekDeadline.toLocaleString()}`);
+          console.log(`⏰ Setting deadline 6 hours before: ${nextWeekDeadline.toLocaleString()}`);
         } else {
           // Fallback if API fails - 7 days from now at 3 PM
           nextWeekDeadline.setDate(nextWeekDeadline.getDate() + 7);
@@ -575,7 +575,7 @@ function Admin() {
       }
       console.log(`🗑️ Deleted ${existingWinners.length} winners`);
 
-      // 4. Fetch matches for starting week to set deadline 2 hours before first match
+      // 4. Fetch matches for starting week to set deadline 6 hours before first match
       let newDeadline = new Date();
       
       try {
@@ -594,12 +594,12 @@ function Admin() {
             }
           }
           
-          // Set deadline 2 hours before the earliest match
+          // Set deadline 6 hours before the earliest match
           const firstMatchTime = new Date(earliestMatch.dateEvent + ' ' + earliestMatch.strTime);
-          newDeadline = new Date(firstMatchTime.getTime() - (2 * 60 * 60 * 1000)); // 2 hours before
+          newDeadline = new Date(firstMatchTime.getTime() - (6 * 60 * 60 * 1000)); // 6 hours before
           
           console.log(`⚽ First match Week ${resetStartWeek}: ${earliestMatch.strHomeTeam} vs ${earliestMatch.strAwayTeam} at ${firstMatchTime.toLocaleString()}`);
-          console.log(`⏰ Setting deadline 2 hours before: ${newDeadline.toLocaleString()}`);
+          console.log(`⏰ Setting deadline 6 hours before: ${newDeadline.toLocaleString()}`);
         } else {
           // Fallback - 7 days from now at 3 PM
           newDeadline.setDate(newDeadline.getDate() + 7);
@@ -967,7 +967,7 @@ function Admin() {
               <ul style={{ marginLeft: '20px' }}>
                 <li>Fetch Week {resetStartWeek} fixtures from Premier League API</li>
                 <li>Allow all users to make fresh picks</li>
-                <li>Set deadline 2 hours before the first match</li>
+                <li>Set deadline 6 hours before the first match</li>
                 <li>Clear all previous competition data</li>
               </ul>
             </div>

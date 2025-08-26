@@ -17,7 +17,7 @@
 
 ### 🏆 Advanced Admin Features:
 - **User Management** - Create/view all players with proper naming
-- **Smart Deadline Management** - Auto-set 2 hours before first match
+- **Smart Deadline Management** - Auto-set 6 hours before first match
 - **Winner Marking System** - Manual + API-powered winner selection
 - **Round Advancement** - Automatic progression with elimination
 - **Complete Game Reset** - Start new seasons from any valid week
@@ -80,7 +80,7 @@
 
 ### For Admins:
 1. **User Management** → Create accounts for all players
-2. **Deadline Setting** → Auto-calculate 2 hours before first match
+2. **Deadline Setting** → Auto-calculate 6 hours before first match
 3. **Winner Selection** → Manual + API auto-fill from real results
 4. **Round Advancement** → One-click progression with elimination
 5. **Season Management** → Reset system for continuous play

@@ -278,18 +278,9 @@ function PickTeam() {
       };
     }
     
-    const daysDiff = hoursDiff / 24;
-    if (daysDiff < 2) {
-      return { 
-        status: 'open', 
-        message: `✅ ${Math.round(hoursDiff)} hours remaining`,
-        color: '#28a745'
-      };
-    }
-    
     return { 
       status: 'open', 
-      message: `✅ ${Math.round(daysDiff)} days remaining`,
+      message: `✅ ${Math.round(hoursDiff)} hours remaining`,
       color: '#28a745'
     };
   };

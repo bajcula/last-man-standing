@@ -14,7 +14,7 @@ A complete web application for managing "Last Man Standing" competitions where f
 
 ### 👑 Professional Admin Dashboard
 - **User Management** - Create accounts for all players
-- **Smart Deadlines** - Auto-set 2 hours before first match kickoff
+- **Smart Deadlines** - Auto-set 6 hours before first match kickoff
 - **Winner Management** - Manual selection + API auto-fill from real results
 - **Round Progression** - One-click advancement with automatic elimination
 - **Season Management** - Reset system for continuous competitions
@@ -77,7 +77,7 @@ npm run dev
 1. **Weekly Picks** - Each player selects one Premier League team per week
 2. **Win to Advance** - Selected team must win their match (draws/losses = elimination)
 3. **No Repeats** - Can't pick the same team twice in a season
-4. **Deadline System** - Picks locked 2 hours before first match
+4. **Deadline System** - Picks locked 6 hours before first match
 5. **Auto-Pick** - Miss deadline = automatic assignment of first available team
 6. **Last Standing** - Final remaining player wins the competition
 
@@ -89,7 +89,7 @@ npm run dev
 - Manage user roles and permissions
 
 ### Game Management
-- **Set Deadlines:** Automatic 2-hour buffer before matches
+- **Set Deadlines:** Automatic 6-hour buffer before matches
 - **Mark Winners:** Manual selection or API auto-fill
 - **Advance Rounds:** One-click progression with elimination
 - **Reset Seasons:** Start fresh competitions from any week
