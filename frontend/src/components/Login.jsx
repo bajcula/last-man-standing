@@ -60,13 +60,14 @@ function Login() {
         borderRadius: '8px', 
         border: '1px solid #b8daff',
         fontFamily: 'Georgia, serif',
-        fontSize: '16px'
+        fontSize: '16px',
+        color: '#000000'
       }}>
-        <strong style={{ fontSize: '18px' }}>🔐 Account Required</strong>
-        <p style={{ marginTop: '10px', lineHeight: '1.6' }}>
+        <strong style={{ fontSize: '18px', color: '#000000' }}>🔐 Account Required</strong>
+        <p style={{ marginTop: '10px', lineHeight: '1.6', color: '#1a1a1a', fontWeight: '500' }}>
           Don't have an account? Contact an administrator to create your account.
         </p>
-        <p style={{ marginTop: '8px', lineHeight: '1.6' }}>
+        <p style={{ marginTop: '8px', lineHeight: '1.6', color: '#1a1a1a', fontWeight: '500' }}>
           They will provide your email and password credentials.
         </p>
       </div>
