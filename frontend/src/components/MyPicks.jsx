@@ -14,14 +14,14 @@ function MyPicks() {
       const picksData = await pb.collection('picks').getFullList({
         filter: `user_id = "${pb.authStore.model.id}"`,
         expand: 'team_id',
-        sort: '-week_number,-updated',
+        sort: '-week_number',
       });
       
-      // Remove duplicates - keep only the latest pick for each week
+      // Remove duplicates - keep only one pick per week (first one found since we sort by week)
       const uniquePicks = {};
       picksData.forEach(pick => {
         const week = pick.week_number;
-        if (!uniquePicks[week] || new Date(pick.updated) > new Date(uniquePicks[week].updated)) {
+        if (!uniquePicks[week]) {
           uniquePicks[week] = pick;
         }
       });
