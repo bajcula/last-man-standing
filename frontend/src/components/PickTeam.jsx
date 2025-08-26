@@ -47,14 +47,21 @@ function PickTeam() {
         setDeadline(currentDeadline);
       }
 
-      // Check elimination status
-      await checkEliminationStatus(picksData, currentWeekNum);
-
-      // Check if already picked this week
+      // Auto-assign team for current week if user doesn't have a pick
       const thisWeekPick = picksData.find(p => p.week_number === currentWeekNum);
-      if (thisWeekPick) {
+      if (!thisWeekPick) {
+        const autoAssignedPick = await autoAssignTeam(teamsData, picksData, currentWeekNum);
+        if (autoAssignedPick) {
+          picksData.push(autoAssignedPick);
+          setMyPicks(picksData);
+          setSelectedTeam(autoAssignedPick.team_id);
+        }
+      } else {
         setSelectedTeam(thisWeekPick.team_id);
       }
+
+      // Check elimination status
+      await checkEliminationStatus(picksData, currentWeekNum);
 
       // Load matches for current week
       await loadWeekMatches(currentWeekNum);
@@ -108,6 +115,43 @@ function PickTeam() {
     return 'Draw';
   };
 
+  const autoAssignTeam = async (allTeams, userPicks, weekNumber) => {
+    try {
+      // Get teams sorted alphabetically
+      const sortedTeams = [...allTeams].sort((a, b) => a.team_name.localeCompare(b.team_name));
+      
+      // Get teams user has already picked
+      const usedTeamIds = userPicks.map(pick => pick.team_id);
+      
+      // Find first available team
+      const availableTeam = sortedTeams.find(team => !usedTeamIds.includes(team.id));
+      
+      if (!availableTeam) {
+        console.error('No available teams for auto-assignment');
+        return null;
+      }
+      
+      // Create the pick
+      const autoPick = await pb.collection('picks').create({
+        user_id: pb.authStore.model.id,
+        team_id: availableTeam.id,
+        week_number: weekNumber,
+      });
+      
+      console.log(`Auto-assigned ${availableTeam.team_name} for Week ${weekNumber}`);
+      
+      // Return pick with expanded team data
+      return {
+        ...autoPick,
+        expand: { team_id: availableTeam }
+      };
+      
+    } catch (error) {
+      console.error('Failed to auto-assign team:', error);
+      return null;
+    }
+  };
+
   const checkEliminationStatus = async (picksData, currentWeekNum) => {
     try {
       // If this is week 1, no one can be eliminated yet
@@ -125,11 +169,6 @@ function PickTeam() {
         return;
       }
 
-      // Get all teams for auto-assignment logic
-      const allTeams = await pb.collection('teams').getFullList({
-        sort: 'id', // Alphabetical by ID
-      });
-
       // Check each previous week to see if user is still alive
       for (let week = 1; week < currentWeekNum; week++) {
         // First check if this week even had winners declared
@@ -143,52 +182,34 @@ function PickTeam() {
           continue;
         }
 
-        // Only process weeks that actually had winners declared
-        let pickForWeek = picksData.find(p => p.week_number === week);
-        
+        // Find user's pick for this week
+        const pickForWeek = picksData.find(p => p.week_number === week);
+
         if (!pickForWeek) {
-          // User didn't pick for this week - auto-assign first available team
-          const usedTeamIds = picksData.map(p => p.team_id);
-          const availableTeam = allTeams.find(team => !usedTeamIds.includes(team.id));
-          
-          if (availableTeam) {
-            // Create auto-pick for this week
-            try {
-              const autoPick = await pb.collection('picks').create({
-                user_id: pb.authStore.model.id,
-                team_id: availableTeam.id,
-                week_number: week,
-              });
-              
-              // Add to picksData and update state
-              picksData.push({
-                ...autoPick,
-                expand: { team_id: availableTeam }
-              });
-              
-              pickForWeek = autoPick;
-              console.log(`Auto-assigned ${availableTeam.team_name} for Week ${week}`);
-            } catch (err) {
-              console.error('Failed to create auto-pick:', err);
-            }
-          }
+          // User has no pick for this week - they're eliminated
+          setIsEliminated(true);
+          setEliminationInfo({
+            reason: 'No pick made',
+            week: week,
+            teamName: 'No team selected',
+            eliminatedWeek: week
+          });
+          return;
         }
 
-        if (pickForWeek) {
-          // Check if their pick (manual or auto) was a winner
-          const userTeamWon = weekWinners.some(winner => winner.team_id === pickForWeek.team_id);
+        // Check if their pick was a winner
+        const userTeamWon = weekWinners.some(winner => winner.team_id === pickForWeek.team_id);
 
-          if (!userTeamWon) {
-            // Their pick was not a winner - they're eliminated
-            setIsEliminated(true);
-            setEliminationInfo({
-              reason: 'Team lost',
-              week: week,
-              teamName: pickForWeek.expand?.team_id?.team_name || 'Unknown Team',
-              eliminatedWeek: week
-            });
-            return;
-          }
+        if (!userTeamWon) {
+          // Their pick was not a winner - they're eliminated
+          setIsEliminated(true);
+          setEliminationInfo({
+            reason: 'Team lost',
+            week: week,
+            teamName: pickForWeek.expand?.team_id?.team_name || 'Unknown Team',
+            eliminatedWeek: week
+          });
+          return;
         }
       }
 
