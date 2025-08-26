@@ -798,7 +798,7 @@ function Admin() {
                   
                   try {
                     // Fetch matches for the week to auto-set deadline
-                    const apiUrl = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4328&r=${week}&s=2025-2026`;
+                    const apiUrl = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4328&r=${week}&s=2024-2025`;
                     const response = await fetch(apiUrl);
                     const data = await response.json();
                     
