@@ -60,12 +60,16 @@ function Admin() {
       });
       setCurrentDeadlines(deadlinesData);
       
+      // Determine current week from deadlines
+      let currentWeek = 1;
       if (deadlinesData.length > 0) {
-        setWeek(Math.max(...deadlinesData.map(d => d.week_number)) + 1);
+        currentWeek = Math.max(...deadlinesData.map(d => d.week_number));
+        setWeek(currentWeek + 1);
+        setSelectedWeek(currentWeek); // Set winners tab to current active week
       }
 
-      // Load existing winners for selected week
-      await loadWinnersForWeek(selectedWeek);
+      // Load existing winners for current week
+      await loadWinnersForWeek(currentWeek);
     } catch (err) {
       console.error('Failed to load data:', err);
       setMessage('Failed to load data');
