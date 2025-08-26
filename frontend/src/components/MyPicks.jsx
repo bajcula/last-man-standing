@@ -116,7 +116,7 @@ function MyPicks() {
                 fontSize: '11px',
                 color: '#666'
               }}>
-                {new Date(pick.created).toLocaleDateString()}
+                {pick.created ? new Date(pick.created).toLocaleDateString() : 'Auto-assigned'}
               </div>
             </div>
           ))}
