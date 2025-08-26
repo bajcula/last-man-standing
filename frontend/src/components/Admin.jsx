@@ -3,7 +3,7 @@ import { pb } from '../lib/pocketbase';
 
 function Admin() {
   // State for different admin functions
-  const [activeTab, setActiveTab] = useState('users'); // users, deadlines, winners, reset
+  const [activeTab, setActiveTab] = useState('users'); // users, winners, reset
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   
@@ -670,18 +670,6 @@ function Admin() {
           Manage Users
         </button>
         <button 
-          onClick={() => setActiveTab('deadlines')}
-          style={{ 
-            padding: '10px 20px', 
-            border: 'none', 
-            backgroundColor: activeTab === 'deadlines' ? '#007bff' : 'transparent',
-            color: activeTab === 'deadlines' ? 'white' : '#007bff',
-            cursor: 'pointer'
-          }}
-        >
-          Manage Deadlines
-        </button>
-        <button 
           onClick={() => setActiveTab('winners')}
           style={{ 
             padding: '10px 20px', 
@@ -776,96 +764,6 @@ function Admin() {
         </div>
       )}
 
-      {/* Deadlines Tab */}
-      {activeTab === 'deadlines' && (
-        <div>
-          <div style={{ marginBottom: '30px' }}>
-            <h3>Set Deadline</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '15px', alignItems: 'end' }}>
-              <div className="form-group">
-                <label>Week Number</label>
-                <input
-                  type="number"
-                  value={week}
-                  onChange={(e) => setWeek(Number(e.target.value))}
-                  min="1"
-                  max="38"
-                  style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '16px' }}
-                />
-              </div>
-              <div className="form-group">
-                <label>Deadline Date & Time</label>
-                <input
-                  type="datetime-local"
-                  value={deadline}
-                  onChange={(e) => setDeadline(e.target.value)}
-                  min={new Date().toISOString().slice(0, 16)}
-                />
-                <small style={{color: '#666', display: 'block', marginTop: '5px'}}>
-                  Must be in the future. Players cannot pick after this time.
-                </small>
-              </div>
-            </div>
-            <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#e8f5e8', borderRadius: '5px', fontSize: '14px' }}>
-              ℹ️ Deadlines are automatically set in the background to 2 hours before the first match of each week
-            </div>
-          </div>
-
-          <div>
-            <h3>Current Deadlines ({currentDeadlines.length})</h3>
-            {currentDeadlines.length === 0 ? (
-              <p style={{color: '#666', fontStyle: 'italic'}}>No deadlines set yet</p>
-            ) : (
-              <div style={{ display: 'grid', gap: '10px' }}>
-                {currentDeadlines.map(d => {
-                  const deadlineDate = new Date(d.deadline_time);
-                  const now = new Date();
-                  const isPast = deadlineDate < now;
-                  const isToday = deadlineDate.toDateString() === now.toDateString();
-                  
-                  return (
-                    <div key={d.id} className="pick-item" style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center', 
-                      padding: '15px', 
-                      border: `2px solid ${isPast ? '#dc3545' : isToday ? '#ffc107' : '#28a745'}`, 
-                      borderRadius: '8px', 
-                      backgroundColor: isPast ? '#f8d7da' : isToday ? '#fff3cd' : '#d4edda'
-                    }}>
-                      <div>
-                        <strong>Week {d.week_number}</strong>
-                        <p style={{margin: '5px 0'}}>{deadlineDate.toLocaleString()}</p>
-                        <small style={{color: '#666'}}>
-                          {isPast ? '⏰ Passed' : isToday ? '⚠️ Today' : '✅ Upcoming'}
-                        </small>
-                      </div>
-                      <div style={{textAlign: 'right'}}>
-                        {d.is_closed && <span style={{color: '#dc3545', fontWeight: 'bold'}}>CLOSED</span>}
-                        <button 
-                          onClick={() => toggleWeekStatus(d)}
-                          style={{
-                            marginLeft: '10px',
-                            padding: '5px 10px',
-                            border: 'none',
-                            borderRadius: '4px',
-                            backgroundColor: d.is_closed ? '#28a745' : '#dc3545',
-                            color: 'white',
-                            cursor: 'pointer',
-                            fontSize: '12px'
-                          }}
-                        >
-                          {d.is_closed ? 'Reopen' : 'Close'}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Winners Tab */}
       {activeTab === 'winners' && (
