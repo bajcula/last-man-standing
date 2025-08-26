@@ -807,9 +807,6 @@ function Admin() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={handleSetDeadline} disabled={loading}>
-                Set Manual Deadline
-              </button>
               <button 
                 onClick={async () => {
                   setLoading(true);
