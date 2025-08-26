@@ -1,8 +1,5 @@
 {
-  "build": {
-    "builder": "NIXPACKS"
-  },
   "deploy": {
-    "startCommand": "./pocketbase/pocketbase serve --http=0.0.0.0:$PORT"
+    "startCommand": "chmod +x pocketbase/pocketbase && ./pocketbase/pocketbase serve --http=0.0.0.0:$PORT"
   }
 }
