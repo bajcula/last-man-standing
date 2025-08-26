@@ -10,6 +10,7 @@ function Admin() {
   // Reset game state
   const [resetStartWeek, setResetStartWeek] = useState(1);
   const [resetLoading, setResetLoading] = useState(false);
+  const [currentWeekFromAPI, setCurrentWeekFromAPI] = useState(2); // Default fallback
   
   // User creation state
   const [newUser, setNewUser] = useState({
@@ -479,27 +480,44 @@ function Admin() {
     }
   };
 
-  // Calculate current Premier League week automatically
-  const getCurrentPLWeek = () => {
-    // 2025/26 season started August 16, 2025
-    const seasonStart = new Date('2025-08-16');
-    const now = new Date();
-    const daysPassed = Math.floor((now - seasonStart) / (24 * 60 * 60 * 1000));
-    const weeksPassed = Math.floor(daysPassed / 7);
-    
-    // If we're more than 2 days into a week, consider it "played"
-    // This accounts for matches typically being Sat-Sun
-    const daysIntoCurrentWeek = daysPassed % 7;
-    const currentCalculatedWeek = weeksPassed + 1;
-    
-    // If it's Saturday (day 6) or Sunday (day 0) or later in the week, move to next week
-    const nextAvailableWeek = daysIntoCurrentWeek >= 2 ? currentCalculatedWeek + 1 : currentCalculatedWeek;
-    
-    // Return week number between 1 and 38
-    return Math.min(Math.max(1, nextAvailableWeek), 38);
+  // Get current Premier League week from API
+  const getCurrentPLWeek = async () => {
+    try {
+      // Try to find the current week by checking recent weeks for upcoming matches
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      
+      // Check weeks 1-10 to find which has upcoming matches
+      for (let week = 1; week <= 10; week++) {
+        const apiUrl = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4328&r=${week}&s=2025-2026`;
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        
+        if (data.events && data.events.length > 0) {
+          // Check if any matches in this week are in the future
+          const hasUpcomingMatches = data.events.some(match => {
+            const matchDate = new Date(match.dateEvent);
+            return matchDate >= today;
+          });
+          
+          if (hasUpcomingMatches) {
+            console.log(`🎯 Current week detected: ${week} (has upcoming matches)`);
+            return week;
+          }
+        }
+      }
+      
+      // Fallback: return week 1 if no upcoming matches found
+      console.log('⚠️ No upcoming matches found, defaulting to week 1');
+      return 1;
+    } catch (error) {
+      console.error('Error fetching current week:', error);
+      // Fallback to manual calculation if API fails
+      return 2; // Safe default for late August 2025
+    }
   };
 
-  const currentPLWeek = getCurrentPLWeek();
+  // Remove this line since getCurrentPLWeek is now async
 
   const resetGame = async () => {
     if (!resetStartWeek || resetStartWeek < 1 || resetStartWeek > 38) {
@@ -507,6 +525,7 @@ function Admin() {
       return;
     }
 
+    const currentPLWeek = await getCurrentPLWeek();
     if (resetStartWeek < currentPLWeek) {
       setMessage(`Cannot start from Week ${resetStartWeek} as it has already been played. Current week is ${currentPLWeek}.`);
       return;
