@@ -481,8 +481,8 @@ function Admin() {
 
   // Calculate current Premier League week automatically
   const getCurrentPLWeek = () => {
-    // 2025/26 season started August 15, 2025
-    const seasonStart = new Date('2025-08-15');
+    // 2025/26 season started August 16, 2025
+    const seasonStart = new Date('2025-08-16');
     const now = new Date();
     const daysPassed = Math.floor((now - seasonStart) / (24 * 60 * 60 * 1000));
     const weeksPassed = Math.floor(daysPassed / 7);
@@ -798,7 +798,7 @@ function Admin() {
                   
                   try {
                     // Fetch matches for the week to auto-set deadline
-                    const apiUrl = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4328&r=${week}&s=2024-2025`;
+                    const apiUrl = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4328&r=${week}&s=2025-2026`;
                     const response = await fetch(apiUrl);
                     const data = await response.json();
                     
