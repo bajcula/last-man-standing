@@ -143,6 +143,7 @@ function PickTeam() {
           continue;
         }
 
+        // Only process weeks that actually had winners declared
         let pickForWeek = picksData.find(p => p.week_number === week);
         
         if (!pickForWeek) {
