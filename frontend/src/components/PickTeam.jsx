@@ -137,9 +137,9 @@ function PickTeam() {
           filter: `week_number = ${week}`,
         });
         
-        // If no winners were declared for this week, skip it (week wasn't played)
+        // If no winners were declared for this week, skip it entirely (week wasn't played)
         if (weekWinners.length === 0) {
-          console.log(`Week ${week} had no winners declared - skipping elimination check`);
+          console.log(`Week ${week} had no winners declared - skipping entirely (no picks, no elimination)`);
           continue;
         }
 
