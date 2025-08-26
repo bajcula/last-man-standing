@@ -132,6 +132,17 @@ function PickTeam() {
 
       // Check each previous week to see if user is still alive
       for (let week = 1; week < currentWeekNum; week++) {
+        // First check if this week even had winners declared
+        const weekWinners = await pb.collection('winning_teams').getFullList({
+          filter: `week_number = ${week}`,
+        });
+        
+        // If no winners were declared for this week, skip it (week wasn't played)
+        if (weekWinners.length === 0) {
+          console.log(`Week ${week} had no winners declared - skipping elimination check`);
+          continue;
+        }
+
         let pickForWeek = picksData.find(p => p.week_number === week);
         
         if (!pickForWeek) {
@@ -164,11 +175,9 @@ function PickTeam() {
 
         if (pickForWeek) {
           // Check if their pick (manual or auto) was a winner
-          const winners = await pb.collection('winning_teams').getFullList({
-            filter: `week_number = ${week} && team_id = "${pickForWeek.team_id}"`,
-          });
+          const userTeamWon = weekWinners.some(winner => winner.team_id === pickForWeek.team_id);
 
-          if (winners.length === 0) {
+          if (!userTeamWon) {
             // Their pick was not a winner - they're eliminated
             setIsEliminated(true);
             setEliminationInfo({
@@ -320,7 +329,6 @@ function PickTeam() {
               <p>✅ View other players' picks and results</p>
               <p>✅ Follow the remaining competition</p>
               <p>✅ See who becomes the Last Man Standing</p>
-              <p>✅ Learn from strategies for next time</p>
             </div>
           </div>
 
