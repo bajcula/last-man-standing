@@ -24,3 +24,18 @@
 - `src/lib/pocketbase.js` - PocketBase client setup
 - `public/` - Static assets
 - `index.html` - Entry HTML file
+
+## Deployment Configuration
+
+### Vercel Settings
+- **Root Directory**: Set to `frontend` in Vercel dashboard
+- **Build Command**: `npm install && npm run build`
+- **Output Directory**: `dist`
+- **Install Command**: `npm install`
+- **Environment Variables**: 
+  - `VITE_POCKETBASE_URL=https://last-man-chicago.pockethost.io`
+
+### Important Notes:
+- The `vercel.json` file should NOT include `cd frontend` commands since the root directory is already set to `frontend` in Vercel settings
+- If you see "ENOENT: no such file or directory" errors, check that the root directory in Vercel is set correctly
+- Backend is deployed separately on PocketHost ($5/month plan required for live instances)
