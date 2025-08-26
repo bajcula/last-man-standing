@@ -111,13 +111,6 @@ function MyPicks() {
                 )}
               </div>
               
-              <div style={{
-                marginTop: '10px',
-                fontSize: '11px',
-                color: '#666'
-              }}>
-                {pick.created ? new Date(pick.created).toLocaleDateString() : 'Auto-assigned'}
-              </div>
             </div>
           ))}
         </div>
