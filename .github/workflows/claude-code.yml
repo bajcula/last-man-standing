@@ -18,4 +18,4 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          claude-code-oauth-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude-token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
