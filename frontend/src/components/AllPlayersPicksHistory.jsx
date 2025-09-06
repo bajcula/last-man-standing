@@ -6,10 +6,35 @@ function AllPlayersPicksHistory() {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [maxWeek, setMaxWeek] = useState(0);
+  const [winningTeams, setWinningTeams] = useState([]);
+  const [currentWeek, setCurrentWeek] = useState(0);
 
   useEffect(() => {
     loadHistoricalData();
   }, []);
+
+  const getBorderStyle = (week, teamId) => {
+    // No border for current/ongoing week
+    if (week === currentWeek) {
+      return '2px solid #007bff';
+    }
+    
+    // Check if this team won in this week
+    const teamWon = winningTeams.some(winner => 
+      winner.week_number === week && winner.team_id === teamId
+    );
+    
+    // Check if there were any winners declared for this week
+    const weekHasWinners = winningTeams.some(winner => winner.week_number === week);
+    
+    if (!weekHasWinners) {
+      // Week is ongoing or no results yet - default blue border
+      return '2px solid #007bff';
+    }
+    
+    // Week has results - green for winners, red for losers
+    return teamWon ? '2px solid #28a745' : '2px solid #dc3545';
+  };
 
   const calculateUserEliminations = async (users) => {
     try {
@@ -85,6 +110,19 @@ function AllPlayersPicksHistory() {
       const deadlines = await pb.collection('deadlines').getFullList({
         sort: 'week_number',
       });
+
+      // Get winning teams data
+      const allWinners = await pb.collection('winning_teams').getFullList();
+      setWinningTeams(allWinners);
+
+      // Determine current week (latest week with active/upcoming deadline)
+      const now = new Date();
+      const currentWeekData = deadlines.find(d => 
+        new Date(d.deadline_time) > now || d.status === 'active'
+      );
+      if (currentWeekData) {
+        setCurrentWeek(currentWeekData.week_number);
+      }
 
       // Check if current user is admin
       const currentUser = pb.authStore.model;
@@ -167,7 +205,8 @@ function AllPlayersPicksHistory() {
         organized[week][playerName] = {
           team: teamInfo?.team_name || 'Unknown Team',
           shortName: teamInfo?.team_short_name || 'UNK',
-          pickDate: pick.created
+          pickDate: pick.created,
+          teamId: teamInfo?.id
         };
 
         maxWeekFound = Math.max(maxWeekFound, week);
@@ -268,7 +307,7 @@ function AllPlayersPicksHistory() {
                       }}>
                         {pick ? (
                           <div style={{
-                            border: '2px solid #007bff',
+                            border: getBorderStyle(week, pick.teamId),
                             borderRadius: '6px',
                             padding: '4px',
                             backgroundColor: '#f8f9fa',
