@@ -13,7 +13,13 @@ function AllPlayersPicksHistory() {
     loadHistoricalData();
   }, []);
 
+  const isWeekFinished = (week) => {
+    return winningTeams.some(winner => winner.week_number === week);
+  };
+
   const getBorderStyle = (week, teamId) => {
+    const weekFinished = isWeekFinished(week);
+    
     // No border for current/ongoing week
     if (week === currentWeek) {
       return '2px solid #007bff';
@@ -24,16 +30,14 @@ function AllPlayersPicksHistory() {
       winner.week_number === week && winner.team_id === teamId
     );
     
-    // Check if there were any winners declared for this week
-    const weekHasWinners = winningTeams.some(winner => winner.week_number === week);
-    
-    if (!weekHasWinners) {
+    if (!weekFinished) {
       // Week is ongoing or no results yet - default blue border
       return '2px solid #007bff';
     }
     
-    // Week has results - green for winners, red for losers
-    return teamWon ? '2px solid #28a745' : '2px solid #dc3545';
+    // Week has results - use double border and stronger colors for finished weeks
+    const borderWidth = '3px double';
+    return teamWon ? `${borderWidth} #28a745` : `${borderWidth} #dc3545`;
   };
 
   const calculateUserEliminations = async (users) => {
@@ -268,17 +272,32 @@ function AllPlayersPicksHistory() {
                 }}>
                   Player
                 </th>
-                {availableWeeks.map(week => (
-                  <th key={week} style={{ 
-                    padding: '8px', 
-                    border: '1px solid #ddd', 
-                    backgroundColor: '#f5f5f5',
-                    minWidth: '70px',
-                    whiteSpace: 'nowrap'
-                  }}>
-                    Week {week}
-                  </th>
-                ))}
+                {availableWeeks.map(week => {
+                  const weekFinished = isWeekFinished(week);
+                  return (
+                    <th key={week} style={{ 
+                      padding: '8px', 
+                      border: '1px solid #ddd', 
+                      backgroundColor: weekFinished ? '#e8f5e8' : '#f5f5f5',
+                      minWidth: '70px',
+                      whiteSpace: 'nowrap',
+                      fontWeight: weekFinished ? 'bold' : 'normal',
+                      fontSize: weekFinished ? '13px' : '14px'
+                    }}>
+                      Week {week}
+                      {weekFinished && (
+                        <div style={{ 
+                          fontSize: '10px', 
+                          color: '#28a745', 
+                          fontWeight: 'bold',
+                          marginTop: '2px'
+                        }}>
+                          DONE
+                        </div>
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
