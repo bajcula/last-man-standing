@@ -354,6 +354,11 @@ button:disabled {
 .match-card__winner { color: var(--color-success); font-weight: bold; margin-top: 4px; }
 .match-card__draw { color: var(--color-text-muted); margin-top: 4px; }
 .match-card__date { color: #856404; }
+.postponed-section { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--color-border); }
+.match-card--postponed { background: #fff3cd; border: 1px dashed var(--color-warning); opacity: 0.8; display: inline-flex; align-items: center; width: auto; }
+.match-card--postponed .match-card__teams { display: inline; }
+.match-card--postponed .match-card__team-names { display: inline-block; width: 120px; }
+.postponed-badge { display: inline-block; background: var(--color-warning); color: #856404; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: var(--radius-sm); margin-left: 8px; vertical-align: middle; text-transform: uppercase; }
 
 /* Team grid */
 .team-card h3 { font-size: 18px; margin-bottom: 0; letter-spacing: 2px; }

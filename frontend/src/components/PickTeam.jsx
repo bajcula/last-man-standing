@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { pb } from '../lib/pocketbase';
 import { getMatchWinner, getFirstAvailableTeam, checkUserElimination } from '../utils/gameLogic';
-import { fetchRoundMatches } from '../utils/api';
+import { fetchRoundMatches, isPostponedStatus } from '../utils/api';
+import { findTeamByApiName } from '../utils/teamMapping';
 
 function PickTeam() {
   const [teams, setTeams] = useState([]);
@@ -85,6 +86,7 @@ function PickTeam() {
         homeScore: match.intHomeScore,
         awayScore: match.intAwayScore,
         status: match.strStatus,
+        postponed: match.strPostponed,
         date: match.dateEvent,
         time: match.strTime,
         winner: getMatchWinner(match)
@@ -319,68 +321,118 @@ function PickTeam() {
       {success && <div className="success">{success}</div>}
 
       {/* Week Matches Section */}
-      {weekMatches.length > 0 && (
-        <div className="matches-section">
-          <h4>🏆 Week {currentWeek} Fixtures ({weekMatches.length} matches)</h4>
-          {matchesLoading ? (
-            <p>Loading matches...</p>
-          ) : (
-            <div className="matches-grid">
-              {weekMatches.map(match => (
-                <div key={match.id} className={`match-card ${match.status === 'Match Finished' ? 'match-card--finished' : 'match-card--upcoming'}`}>
-                  {match.status === 'Match Finished' ? (
-                    <>
-                      <div className="match-card__vs">
-                        <span className={`match-card__home ${match.winner === match.homeTeam ? 'match-card__team--bold' : ''}`}>{getShortName(match.homeTeam)}</span>
-                        <div className="match-card__center">
-                          <div className="match-card__score">{match.homeScore} - {match.awayScore}</div>
-                        </div>
-                        <span className={`match-card__away ${match.winner === match.awayTeam ? 'match-card__team--bold' : ''}`}>{getShortName(match.awayTeam)}</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
+      {weekMatches.length > 0 && (() => {
+        const isMoved = (m) => {
+          if (m.postponed === 'yes') return true;
+          if (isPostponedStatus(m.status)) return true;
+          // Finished match played on a past date (rescheduled early)
+          if (m.status === 'Match Finished') {
+            const matchDate = new Date(m.date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return matchDate < today;
+          }
+          return false;
+        };
+        const upcomingMatches = weekMatches.filter(m => !isMoved(m));
+        const movedMatches = weekMatches.filter(m => isMoved(m));
+        const selectedTeamName = teams.find(t => t.id === selectedTeam)?.team_name;
+        const isPickAffected = selectedTeamName && movedMatches.some(m =>
+          m.homeTeam === selectedTeamName || m.awayTeam === selectedTeamName ||
+          getShortName(m.homeTeam) === teams.find(t => t.id === selectedTeam)?.team_short_name ||
+          getShortName(m.awayTeam) === teams.find(t => t.id === selectedTeam)?.team_short_name
+        );
+
+        return (
+          <div className="matches-section">
+            <h4>🏆 Week {currentWeek} Fixtures ({upcomingMatches.length} matches)</h4>
+
+            {isPickAffected && (
+              <div className="message message--warning">
+                Your selected team's match has been moved this week. Consider picking a different team.
+              </div>
+            )}
+
+            {matchesLoading ? (
+              <p>Loading matches...</p>
+            ) : (
+              <>
+                <div className="matches-grid">
+                  {upcomingMatches.map(match => (
+                    <div key={match.id} className="match-card match-card--upcoming">
                       <div className="match-card__teams">{getShortName(match.homeTeam)} vs {getShortName(match.awayTeam)}</div>
                       <div className="match-card__date">
                         📅 {new Date(match.date + ' ' + match.time).toLocaleDateString()} at {match.time}
                       </div>
-                    </>
+                    </div>
+                  ))}
+                </div>
+
+                {movedMatches.length > 0 && (
+                  <div className="postponed-section">
+                    {movedMatches.map(match => (
+                      <div key={match.id} className="match-card match-card--postponed">
+                        <div className="match-card__teams">
+                          <span className="match-card__team-names">{getShortName(match.homeTeam)} vs {getShortName(match.awayTeam)}</span>
+                          <span className="postponed-badge">MOVED</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })()}
+
+      {(() => {
+        // Build set of team IDs that can't be picked (match moved/postponed or finished early)
+        const unavailableTeamIds = new Set();
+        for (const match of weekMatches) {
+          const moved = match.postponed === 'yes' || isPostponedStatus(match.status) ||
+            (match.status === 'Match Finished' && new Date(match.date) < new Date(new Date().toDateString()));
+          if (moved) {
+            const homeTeam = findTeamByApiName(match.homeTeam, teams);
+            const awayTeam = findTeamByApiName(match.awayTeam, teams);
+            if (homeTeam) unavailableTeamIds.add(homeTeam.id);
+            if (awayTeam) unavailableTeamIds.add(awayTeam.id);
+          }
+        }
+
+        const pickableTeams = teams.filter(t => !unavailableTeamIds.has(t.id));
+
+        return (
+          <div className={`teams-grid ${isDeadlinePassed() ? 'teams-grid--locked' : ''}`}>
+            {pickableTeams.map(team => {
+              const isDisabled = isTeamDisabled(team.id) || isDeadlinePassed();
+              const isSelected = selectedTeam === team.id;
+              const wasAlreadyPicked = isTeamDisabled(team.id);
+
+              return (
+                <div
+                  key={team.id}
+                  className={`team-card ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''} ${isDeadlinePassed() && !wasAlreadyPicked ? 'team-card--locked' : ''}`}
+                  onClick={() => {
+                    if (!isDisabled) {
+                      setSelectedTeam(team.id);
+                    }
+                  }}
+                  tabIndex={isDisabled ? -1 : 0}
+                  role="button"
+                  aria-pressed={isSelected}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!isDisabled) setSelectedTeam(team.id); }}}
+                >
+                  <h3>{team.team_short_name}</h3>
+                  {wasAlreadyPicked && (
+                    <p className="already-picked">Already picked</p>
                   )}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className={`teams-grid ${isDeadlinePassed() ? 'teams-grid--locked' : ''}`}>
-        {teams.map(team => {
-          const isDisabled = isTeamDisabled(team.id) || isDeadlinePassed();
-          const isSelected = selectedTeam === team.id;
-          const wasAlreadyPicked = isTeamDisabled(team.id);
-
-          return (
-            <div
-              key={team.id}
-              className={`team-card ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''} ${isDeadlinePassed() && !wasAlreadyPicked ? 'team-card--locked' : ''}`}
-              onClick={() => {
-                if (!isDisabled) {
-                  setSelectedTeam(team.id);
-                }
-              }}
-              tabIndex={isDisabled ? -1 : 0}
-              role="button"
-              aria-pressed={isSelected}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!isDisabled) setSelectedTeam(team.id); }}}
-            >
-              <h3>{team.team_short_name}</h3>
-              {wasAlreadyPicked && (
-                <p className="already-picked">Already picked</p>
-              )}
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        );
+      })()}
 
       <div className="submit-area">
         {isDeadlinePassed() ? (

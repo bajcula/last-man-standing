@@ -21,14 +21,22 @@ export const fetchLastMatches = async () => {
   return data.events || [];
 };
 
+const SKIP_STATUSES = ['Match Postponed', 'Postponed', 'Cancelled', 'Abandoned', 'Awarded'];
+
+export const isPostponedStatus = (status) => SKIP_STATUSES.includes(status);
+
 /**
- * Find the earliest match in an array of events and return deadline (6 hours before)
+ * Find the earliest playable match in an array of events and return deadline (6 hours before)
+ * Skips postponed/cancelled matches so they don't corrupt the deadline.
  */
 export const calculateDeadlineFromMatches = (events) => {
   if (!events || events.length === 0) return null;
 
-  let earliest = events[0];
-  for (const match of events) {
+  const playable = events.filter(e => !isPostponedStatus(e.strStatus));
+  if (playable.length === 0) return null;
+
+  let earliest = playable[0];
+  for (const match of playable) {
     const matchDate = new Date(match.dateEvent + ' ' + match.strTime);
     const earliestDate = new Date(earliest.dateEvent + ' ' + earliest.strTime);
     if (matchDate < earliestDate) {
