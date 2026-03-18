@@ -1,23 +1,43 @@
 // Team name mapping between TheSportsDB API names and our database names
+// DB uses full API names (e.g., "Brighton and Hove Albion", "Wolverhampton Wanderers")
 const TEAM_NAME_MAP = {
-  'Manchester United': 'Manchester United',
+  // Identity mappings for all 20 DB team names
+  'Arsenal': 'Arsenal',
+  'Aston Villa': 'Aston Villa',
+  'Bournemouth': 'Bournemouth',
+  'Brentford': 'Brentford',
+  'Brighton and Hove Albion': 'Brighton and Hove Albion',
+  'Burnley': 'Burnley',
+  'Chelsea': 'Chelsea',
+  'Crystal Palace': 'Crystal Palace',
+  'Everton': 'Everton',
+  'Fulham': 'Fulham',
+  'Leeds United': 'Leeds United',
+  'Leicester City': 'Leicester City',
+  'Liverpool': 'Liverpool',
   'Manchester City': 'Manchester City',
+  'Manchester United': 'Manchester United',
+  'Newcastle United': 'Newcastle United',
+  'Nottingham Forest': 'Nottingham Forest',
+  'Sunderland': 'Sunderland',
+  'Tottenham Hotspur': 'Tottenham Hotspur',
+  'West Ham United': 'West Ham United',
+  'Wolverhampton Wanderers': 'Wolverhampton Wanderers',
+  // Alternate/short names from API
   'Man United': 'Manchester United',
   'Man City': 'Manchester City',
   'Newcastle': 'Newcastle United',
-  'Newcastle United': 'Newcastle United',
   'West Ham': 'West Ham United',
-  'West Ham United': 'West Ham United',
   'Tottenham': 'Tottenham Hotspur',
-  'Tottenham Hotspur': 'Tottenham Hotspur',
+  'Spurs': 'Tottenham Hotspur',
   'Leicester': 'Leicester City',
-  'Leicester City': 'Leicester City',
   'Wolves': 'Wolverhampton Wanderers',
   'Wolverhampton': 'Wolverhampton Wanderers',
   'Nottm Forest': 'Nottingham Forest',
-  'Nottingham Forest': 'Nottingham Forest',
-  'Brighton': 'Brighton',
-  'Crystal Palace': 'Crystal Palace'
+  "Nott'm Forest": 'Nottingham Forest',
+  'Brighton': 'Brighton and Hove Albion',
+  'AFC Bournemouth': 'Bournemouth',
+  'Leeds': 'Leeds United',
 };
 
 /**
