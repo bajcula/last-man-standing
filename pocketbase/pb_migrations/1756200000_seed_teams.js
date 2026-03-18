@@ -27,6 +27,12 @@ migrate((db) => {
     { team_name: "Wolverhampton Wanderers", team_short_name: "WOL" },
   ];
 
+  // Skip if teams already exist (avoid duplicates on existing DBs)
+  try {
+    var existing = dao.findRecordsByFilter("teams", "id != ''", "", 1, 0);
+    if (existing.length > 0) return;
+  } catch (e) {}
+
   for (var i = 0; i < teams.length; i++) {
     var record = new Record(collection);
     record.set("team_name", teams[i].team_name);
