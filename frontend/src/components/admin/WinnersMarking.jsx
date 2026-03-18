@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { pb } from '../../lib/pocketbase';
 import { getMatchWinner } from '../../utils/gameLogic';
 import { findTeamByApiName } from '../../utils/teamMapping';
-import { fetchRoundMatches, fetchLastMatches, calculateDeadlineFromMatches, getFallbackDeadline } from '../../utils/api';
+import { fetchRoundMatches, fetchLastMatches, calculateDeadlineFromMatches, getFallbackDeadline, isPostponedStatus } from '../../utils/api';
 
 function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading, message, setMessage }) {
   const [winners, setWinners] = useState({});
@@ -258,35 +258,51 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
           </div>
         )}
 
-        {plMatches.length > 0 && (
-          <div>
-            <h5>Match Results:</h5>
-            <div className="matches-grid">
-              {plMatches.map(match => (
-                <div key={match.id} className={`match-card ${match.status === 'Match Finished' ? 'match-card--finished' : 'match-card--upcoming'}`}>
-                  <div className="match-card__teams">
-                    {match.homeTeam} vs {match.awayTeam}
+        {plMatches.length > 0 && (() => {
+          const playable = plMatches.filter(m => !isPostponedStatus(m.status));
+          const postponed = plMatches.filter(m => isPostponedStatus(m.status));
+          return (
+            <div>
+              <h5>Match Results ({playable.length} playable):</h5>
+              <div className="matches-grid">
+                {playable.map(match => (
+                  <div key={match.id} className={`match-card ${match.status === 'Match Finished' ? 'match-card--finished' : 'match-card--upcoming'}`}>
+                    <div className="match-card__teams">
+                      {match.homeTeam} vs {match.awayTeam}
+                    </div>
+                    {match.status === 'Match Finished' ? (
+                      <div>
+                        <div>Score: {match.homeScore}-{match.awayScore}</div>
+                        {match.winner !== 'Draw' && (
+                          <div className="match-card__winner">Winner: {match.winner}</div>
+                        )}
+                        {match.winner === 'Draw' && (
+                          <div className="match-card__draw">Result: Draw</div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="match-card__date">
+                        {match.date} {match.time}
+                      </div>
+                    )}
                   </div>
-                  {match.status === 'Match Finished' ? (
-                    <div>
-                      <div>Score: {match.homeScore}-{match.awayScore}</div>
-                      {match.winner !== 'Draw' && (
-                        <div className="match-card__winner">Winner: {match.winner}</div>
-                      )}
-                      {match.winner === 'Draw' && (
-                        <div className="match-card__draw">Result: Draw</div>
-                      )}
+                ))}
+              </div>
+              {postponed.length > 0 && (
+                <div className="postponed-section">
+                  {postponed.map(match => (
+                    <div key={match.id} className="match-card match-card--postponed">
+                      <div className="match-card__teams">
+                        <span className="match-card__team-names">{match.homeTeam} vs {match.awayTeam}</span>
+                        <span className="postponed-badge">MOVED</span>
+                      </div>
                     </div>
-                  ) : (
-                    <div className="match-card__date">
-                      {match.date} {match.time}
-                    </div>
-                  )}
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       <div>

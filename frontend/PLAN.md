@@ -128,7 +128,22 @@ Each phase must be completed and tested before moving to the next. Phases are or
 
 ---
 
-### Phase 3: Admin Tools for Edge Cases
+### Phase 3: Frontend Postponement Filtering
+
+**Goal**: Filter out postponed matches from fixture displays and flag affected picks. TheSportsDB correctly reports `strStatus: "Match Postponed"` but the frontend doesn't use it — postponed matches still show as upcoming fixtures with stale dates.
+
+**Files**: `frontend/src/components/PickTeam.jsx`, `frontend/src/components/admin/WinnersMarking.jsx`
+
+- [x] Filter postponed/moved matches out of fixture list, show in separate "MOVED" cards below
+- [x] Filter postponed matches in `WinnersMarking.jsx` match results display
+- [x] Skip postponed matches in deadline calculation (`calculateDeadlineFromMatches`)
+- [x] Show warning when user's selected team has a moved match
+- [x] Remove teams with moved matches from pick grid (uses `strPostponed` field + date-based detection for early-played matches)
+- [x] Test in Docker: verify GW31 shows 8 upcoming matches + 2 moved (WOL vs ARS, MCI vs CRY)
+
+---
+
+### Phase 4: Admin Tools for Edge Cases
 
 **Goal**: Admin can intervene when postponements or rescheduling affect active picks.
 
@@ -141,7 +156,7 @@ Each phase must be completed and tested before moving to the next. Phases are or
 
 ---
 
-### Phase 4: Reliability & Bug Fixes
+### Phase 5: Reliability & Bug Fixes
 
 **Goal**: Fix known bugs that would bite in production.
 
@@ -154,7 +169,7 @@ Each phase must be completed and tested before moving to the next. Phases are or
 
 ---
 
-### Phase 5: Testing
+### Phase 6: Testing
 
 **Goal**: Confidence that changes don't break things.
 
@@ -165,7 +180,7 @@ Each phase must be completed and tested before moving to the next. Phases are or
 
 ---
 
-### Phase 6: UX Polish
+### Phase 7: UX Polish
 
 **Goal**: Better user experience.
 
@@ -179,7 +194,7 @@ Each phase must be completed and tested before moving to the next. Phases are or
 
 ---
 
-### Phase 7: Code Quality
+### Phase 8: Code Quality
 
 **Goal**: Maintainability for future changes.
 
