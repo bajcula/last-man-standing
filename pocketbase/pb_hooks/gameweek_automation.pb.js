@@ -6,6 +6,12 @@ cronAdd("gw_auto", "* * * * *", function() {
   var RESULTS_BUFFER_HOURS = 5;
   var API_BASE = "https://www.thesportsdb.com/api/v1/json/3";
 
+  var SKIP_STATUSES = ["Postponed", "Cancelled", "Abandoned", "Awarded"];
+
+  function isSkippedStatus(status) {
+    return SKIP_STATUSES.indexOf(status) !== -1;
+  }
+
   var TEAM_NAME_MAP = {
     "Man United": "Manchester United",
     "Man City": "Manchester City",
@@ -72,10 +78,12 @@ cronAdd("gw_auto", "* * * * *", function() {
     var earliest = null;
     var latest = null;
     for (var i = 0; i < matches.length; i++) {
+      if (isSkippedStatus(matches[i].strStatus)) continue;
       var ko = new Date(matches[i].dateEvent + "T" + (matches[i].strTime || "00:00:00"));
       if (!earliest || ko < earliest) earliest = ko;
       if (!latest || ko > latest) latest = ko;
     }
+    if (!earliest || !latest) return { active: false, reason: "all matches postponed/cancelled" };
     var now = new Date();
     var activeEnd = new Date(latest.getTime() + RESULTS_BUFFER_HOURS * 60 * 60 * 1000);
     if (now < earliest) return { active: false, reason: "before first kickoff" };
@@ -255,15 +263,22 @@ cronAdd("gw_auto", "* * * * *", function() {
       return;
     }
 
-    var allDone = true;
+    var allResolved = true;
     var doneCount = 0;
+    var skippedCount = 0;
     for (var i = 0; i < matches.length; i++) {
-      if (matches[i].strStatus === "Match Finished") doneCount++;
-      else allDone = false;
+      if (matches[i].strStatus === "Match Finished") {
+        doneCount++;
+      } else if (isSkippedStatus(matches[i].strStatus)) {
+        skippedCount++;
+        console.log("[AUTOMATION] Skipping " + matches[i].strStatus.toLowerCase() + " match: " + matches[i].strHomeTeam + " vs " + matches[i].strAwayTeam);
+      } else {
+        allResolved = false;
+      }
     }
 
-    if (allDone) {
-      console.log("[AUTOMATION] All " + matches.length + " matches done. Processing week " + currentWeek);
+    if (allResolved) {
+      console.log("[AUTOMATION] All matches resolved (" + doneCount + " finished, " + skippedCount + " skipped). Processing week " + currentWeek);
       markWinners(currentWeek, matches);
       ensureNextWeekReady(currentWeek);
       return;
@@ -271,11 +286,11 @@ cronAdd("gw_auto", "* * * * *", function() {
 
     var pw = getPollingWindow(matches);
     if (!pw.active) {
-      console.log("[AUTOMATION] Skipping - " + pw.reason + " (" + doneCount + "/" + matches.length + " finished)");
+      console.log("[AUTOMATION] Skipping - " + pw.reason + " (" + doneCount + "/" + matches.length + " finished, " + skippedCount + " skipped)");
       return;
     }
 
-    console.log("[AUTOMATION] " + doneCount + "/" + matches.length + " finished. Waiting.");
+    console.log("[AUTOMATION] " + doneCount + "/" + matches.length + " finished, " + skippedCount + " skipped. Waiting.");
 
   } catch (err) {
     console.log("[AUTOMATION] Error: " + String(err));

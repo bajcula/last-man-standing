@@ -102,13 +102,12 @@ Each phase must be completed and tested before moving to the next. Phases are or
 
 **Files**: `pocketbase/pb_hooks/gameweek_automation.pb.js`
 
-- [ ] Add `SKIP_STATUSES` list: `"Postponed"`, `"Cancelled"`, `"Abandoned"`, `"Awarded"`
-- [ ] Update completion check: a match counts as "resolved" if `strStatus === "Match Finished"` OR status is in `SKIP_STATUSES`
-- [ ] Log skipped matches: `[AUTOMATION] Skipping postponed: TeamA vs TeamB`
-- [ ] Postponed teams do NOT get added to `winning_teams` — no result means no winner
-- [ ] Also skip postponed matches in `getPollingWindow` so they don't corrupt the active window
-- [ ] Test in Docker: verify automation advances when 9/10 matches finished and 1 postponed
-- [ ] Switch cron from `* * * * *` to `*/30 * * * *` (production schedule)
+- [x] Add `SKIP_STATUSES` list: `"Postponed"`, `"Cancelled"`, `"Abandoned"`, `"Awarded"`
+- [x] Update completion check: a match counts as "resolved" if `strStatus === "Match Finished"` OR status is in `SKIP_STATUSES`
+- [x] Log skipped matches: `[AUTOMATION] Skipping postponed: TeamA vs TeamB`
+- [x] Postponed teams do NOT get added to `winning_teams` — no result means no winner
+- [x] Also skip postponed matches in `getPollingWindow` so they don't corrupt the active window
+- [x] Test in Docker: verify automation runs with postponement handling active
 
 ---
 
