@@ -372,7 +372,7 @@ button:disabled {
 .pick-card__week { font-size: 16px; font-weight: bold; color: var(--color-text); margin-bottom: 12px; }
 .pick-card__team { border: 2px solid var(--color-success); border-radius: var(--radius-md); padding: 16px; background: white; text-align: center; width: 100%; min-height: 80px; display: flex; flex-direction: column; justify-content: center; flex: 1; }
 .pick-card__short-name { color: var(--color-success); font-size: 18px; font-weight: bold; display: block; margin-bottom: 6px; }
-.pick-card__full-name { color: var(--color-text-muted); font-size: 12px; line-height: 1.2; }
+.pick-card__full-name { color: var(--color-text-muted); font-size: 12px; line-height: 1.2; overflow-wrap: break-word; word-wrap: break-word; }
 
 /* Admin tabs */
 .admin-tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid var(--color-border); gap: 0; }
@@ -394,7 +394,7 @@ button:disabled {
 
 /* Winners section */
 .winners-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-.winner-label { display: flex; align-items: center; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; transition: background 0.2s; }
+.winner-label { display: flex; align-items: center; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; transition: background 0.2s; overflow-wrap: break-word; word-wrap: break-word; }
 .winner-label--checked { background: #d4edda; }
 .winner-label input { margin-right: 8px; }
 

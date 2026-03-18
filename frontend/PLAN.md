@@ -117,14 +117,14 @@ Each phase must be completed and tested before moving to the next. Phases are or
 
 **Files**: `frontend/src/utils/teamMapping.js`, all components displaying team names
 
-- [ ] Update `TEAM_NAME_MAP` in `teamMapping.js` to match new DB names
-- [ ] Update `getShortName()` to handle full API names → 3-letter codes
-- [ ] Verify `PickTeam.jsx` — team cards use `team_short_name`, confirm no overflow
-- [ ] Verify `MyPicks.jsx` — history cards handle full names
-- [ ] Verify `AllPlayersPicksHistory.jsx` — table/grid handles full names
-- [ ] Verify `Admin.jsx` — winner marking dropdown shows full names correctly
-- [ ] Remove any hardcoded short team name references
-- [ ] Test in Docker: full flow from pick to elimination with new names
+- [x] Update `TEAM_NAME_MAP` in `teamMapping.js` to match new DB names
+- [x] Update `getShortName()` to handle full API names → 3-letter codes
+- [x] Verify `PickTeam.jsx` — team cards use `team_short_name`, confirm no overflow
+- [x] Verify `MyPicks.jsx` — history cards handle full names
+- [x] Verify `AllPlayersPicksHistory.jsx` — table/grid handles full names
+- [x] Verify `Admin.jsx` — winner marking dropdown shows full names correctly
+- [x] Remove any hardcoded short team name references
+- [x] Test in Docker: full flow from pick to elimination with new names
 
 ---
 
