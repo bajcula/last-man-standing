@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { pb } from '../lib/pocketbase';
+import { getMatchWinner, getFirstAvailableTeam, checkUserElimination } from '../utils/gameLogic';
+import { fetchRoundMatches } from '../utils/api';
 
 function PickTeam() {
   const [teams, setTeams] = useState([]);
@@ -75,27 +77,19 @@ function PickTeam() {
   const loadWeekMatches = async (weekNum) => {
     setMatchesLoading(true);
     try {
-      const apiUrl = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4328&r=${weekNum}&s=2025-2026`;
-      const response = await fetch(apiUrl);
-      const data = await response.json();
-      
-      if (data.events && data.events.length > 0) {
-        const matches = data.events.map(match => ({
-          id: match.idEvent,
-          homeTeam: match.strHomeTeam,
-          awayTeam: match.strAwayTeam,
-          homeScore: match.intHomeScore,
-          awayScore: match.intAwayScore,
-          status: match.strStatus,
-          date: match.dateEvent,
-          time: match.strTime,
-          winner: getMatchWinner(match)
-        }));
-        
-        setWeekMatches(matches);
-      } else {
-        setWeekMatches([]);
-      }
+      const events = await fetchRoundMatches(weekNum);
+      const matches = events.map(match => ({
+        id: match.idEvent,
+        homeTeam: match.strHomeTeam,
+        awayTeam: match.strAwayTeam,
+        homeScore: match.intHomeScore,
+        awayScore: match.intAwayScore,
+        status: match.strStatus,
+        date: match.dateEvent,
+        time: match.strTime,
+        winner: getMatchWinner(match)
+      }));
+      setWeekMatches(matches);
     } catch (error) {
       console.error('Failed to load week matches:', error);
       setWeekMatches([]);
@@ -104,27 +98,9 @@ function PickTeam() {
     }
   };
 
-  const getMatchWinner = (match) => {
-    if (match.strStatus !== 'Match Finished') return null;
-    
-    const homeScore = parseInt(match.intHomeScore) || 0;
-    const awayScore = parseInt(match.intAwayScore) || 0;
-    
-    if (homeScore > awayScore) return match.strHomeTeam;
-    if (awayScore > homeScore) return match.strAwayTeam;
-    return 'Draw';
-  };
-
   const autoAssignTeam = async (allTeams, userPicks, weekNumber) => {
     try {
-      // Get teams sorted alphabetically
-      const sortedTeams = [...allTeams].sort((a, b) => a.team_name.localeCompare(b.team_name));
-      
-      // Get teams user has already picked
-      const usedTeamIds = userPicks.map(pick => pick.team_id);
-      
-      // Find first available team
-      const availableTeam = sortedTeams.find(team => !usedTeamIds.includes(team.id));
+      const availableTeam = getFirstAvailableTeam(allTeams, userPicks);
       
       if (!availableTeam) {
         console.error('No available teams for auto-assignment');
@@ -154,14 +130,11 @@ function PickTeam() {
 
   const checkEliminationStatus = async (picksData, currentWeekNum) => {
     try {
-      // If this is week 1, no one can be eliminated yet
       if (currentWeekNum <= 1) {
         setIsEliminated(false);
         return;
       }
 
-      // Check if there are any winning teams data at all
-      // If not, this might be a fresh game reset - no one should be eliminated
       const allWinners = await pb.collection('winning_teams').getFullList();
       if (allWinners.length === 0) {
         setIsEliminated(false);
@@ -169,53 +142,9 @@ function PickTeam() {
         return;
       }
 
-      // Check each previous week to see if user is still alive
-      for (let week = 1; week < currentWeekNum; week++) {
-        // First check if this week even had winners declared
-        const weekWinners = await pb.collection('winning_teams').getFullList({
-          filter: `week_number = ${week}`,
-        });
-        
-        // If no winners were declared for this week, skip it entirely (week wasn't played)
-        if (weekWinners.length === 0) {
-          console.log(`Week ${week} had no winners declared - skipping entirely (no picks, no elimination)`);
-          continue;
-        }
-
-        // Find user's pick for this week
-        const pickForWeek = picksData.find(p => p.week_number === week);
-
-        if (!pickForWeek) {
-          // User has no pick for this week - they're eliminated
-          setIsEliminated(true);
-          setEliminationInfo({
-            reason: 'No pick made',
-            week: week,
-            teamName: 'No team selected',
-            eliminatedWeek: week
-          });
-          return;
-        }
-
-        // Check if their pick was a winner
-        const userTeamWon = weekWinners.some(winner => winner.team_id === pickForWeek.team_id);
-
-        if (!userTeamWon) {
-          // Their pick was not a winner - they're eliminated
-          setIsEliminated(true);
-          setEliminationInfo({
-            reason: 'Team lost',
-            week: week,
-            teamName: pickForWeek.expand?.team_id?.team_name || 'Unknown Team',
-            eliminatedWeek: week
-          });
-          return;
-        }
-      }
-
-      // If we get here, user is still alive
-      setIsEliminated(false);
-      setEliminationInfo(null);
+      const result = checkUserElimination(picksData, allWinners, currentWeekNum);
+      setIsEliminated(result.isEliminated);
+      setEliminationInfo(result.eliminationInfo);
     } catch (err) {
       console.error('Failed to check elimination status:', err);
     }
@@ -258,6 +187,14 @@ function PickTeam() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getShortName = (fullName) => {
+    if (!fullName) return '???';
+    const exact = teams.find(t => t.team_name === fullName);
+    if (exact) return exact.team_short_name;
+    const partial = teams.find(t => fullName.includes(t.team_name) || t.team_name.includes(fullName));
+    return partial?.team_short_name || fullName.substring(0, 3).toUpperCase();
   };
 
   const isTeamDisabled = (teamId) => {
@@ -322,30 +259,16 @@ function PickTeam() {
   if (isEliminated && eliminationInfo) {
     return (
       <div className="card">
-        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-          <h2 style={{ color: '#dc3545', marginBottom: '20px' }}>🚫 Eliminated in Week {eliminationInfo.week}</h2>
-          
-          <div style={{ 
-            backgroundColor: '#f8d7da', 
-            border: '1px solid #f5c6cb', 
-            borderRadius: '8px', 
-            padding: '20px', 
-            marginBottom: '20px' 
-          }}>
-            <div>
-              <h4 style={{ color: '#721c24', marginBottom: '15px' }}>Your Journey Ends Here</h4>
-              <p><strong>Week {eliminationInfo.week}:</strong> Your team {eliminationInfo.teamName} did not win their match</p>
-              <p>Unfortunately, this means you're out of the Last Man Standing competition.</p>
-            </div>
+        <div className="elimination">
+          <h2 className="elimination__title">🚫 Eliminated in Week {eliminationInfo.week}</h2>
+
+          <div className="elimination__box elimination__box--danger">
+            <h4 style={{ color: '#721c24', marginBottom: '15px' }}>Your Journey Ends Here</h4>
+            <p><strong>Week {eliminationInfo.week}:</strong> Your team {eliminationInfo.teamName} did not win their match</p>
+            <p>Unfortunately, this means you're out of the Last Man Standing competition.</p>
           </div>
 
-          <div style={{ 
-            backgroundColor: '#d1ecf1', 
-            border: '1px solid #bee5eb', 
-            borderRadius: '8px', 
-            padding: '20px',
-            marginBottom: '20px'
-          }}>
+          <div className="elimination__box elimination__box--info">
             <h4 style={{ color: '#0c5460', marginBottom: '15px' }}>🎯 What You Can Still Do</h4>
             <div style={{ textAlign: 'left', display: 'inline-block' }}>
               <p>✅ View other players' picks and results</p>
@@ -354,12 +277,7 @@ function PickTeam() {
             </div>
           </div>
 
-          <div style={{ 
-            backgroundColor: '#d4edda', 
-            border: '1px solid #c3e6cb', 
-            borderRadius: '8px', 
-            padding: '20px' 
-          }}>
+          <div className="elimination__box elimination__box--success">
             <h4 style={{ color: '#155724', marginBottom: '15px' }}>🔥 Better Luck Next Season!</h4>
             <p style={{ fontSize: '16px', marginBottom: '15px' }}>
               Every great player has been eliminated at some point. Use this experience to come back stronger!
@@ -378,36 +296,18 @@ function PickTeam() {
       <h2>Pick Your Team - Week {currentWeek}</h2>
       
       {deadline && (
-        <div className="deadline-info" style={{
-          backgroundColor: isDeadlinePassed() ? '#f8d7da' : '#d4edda',
-          border: `1px solid ${isDeadlinePassed() ? '#f5c6cb' : '#c3e6cb'}`,
-          borderRadius: '8px',
-          padding: '15px',
-          marginBottom: '20px'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+        <div className={`deadline-bar ${isDeadlinePassed() ? 'deadline-bar--passed' : 'deadline-bar--open'}`}>
+          <div className="deadline-bar__header">
             <strong>Week {currentWeek} Deadline:</strong>
-            <span style={{ 
-              color: getDeadlineStatus().color, 
-              fontWeight: 'bold',
-              fontSize: '14px'
-            }}>
+            <span style={{ color: getDeadlineStatus().color, fontWeight: 'bold', fontSize: '14px' }}>
               {getDeadlineStatus().message}
             </span>
           </div>
-          <div style={{ fontSize: '14px', color: '#666' }}>
+          <div className="deadline-bar__time">
             📅 {new Date(deadline.deadline_time).toLocaleDateString()} at {new Date(deadline.deadline_time).toLocaleTimeString()}
           </div>
-          
           {isDeadlinePassed() && (
-            <div style={{
-              marginTop: '15px',
-              padding: '10px',
-              backgroundColor: '#f8d7da',
-              border: '1px solid #f5c6cb',
-              borderRadius: '6px',
-              fontSize: '14px'
-            }}>
+            <div className="deadline-bar__locked">
               <strong>🚫 Picks are now locked for Week {currentWeek}</strong>
               <p style={{margin: '5px 0 0 0'}}>You can no longer change your selection. Wait for results to be posted.</p>
             </div>
@@ -420,55 +320,31 @@ function PickTeam() {
 
       {/* Week Matches Section */}
       {weekMatches.length > 0 && (
-        <div style={{
-          marginBottom: '20px',
-          padding: '15px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '8px',
-          border: '1px solid #dee2e6'
-        }}>
+        <div className="matches-section">
           <h4>🏆 Week {currentWeek} Fixtures ({weekMatches.length} matches)</h4>
           {matchesLoading ? (
             <p>Loading matches...</p>
           ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-              gap: '10px',
-              marginTop: '10px',
-              maxHeight: '400px',
-              overflowY: 'auto',
-              padding: '5px'
-            }}>
+            <div className="matches-grid">
               {weekMatches.map(match => (
-                <div key={match.id} style={{
-                  padding: '10px',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  backgroundColor: match.status === 'Match Finished' ? '#e8f5e8' : '#fff',
-                  fontSize: '13px'
-                }}>
-                  <div style={{ fontWeight: 'bold', marginBottom: '5px', fontSize: '14px' }}>
-                    {match.homeTeam} vs {match.awayTeam}
-                  </div>
+                <div key={match.id} className={`match-card ${match.status === 'Match Finished' ? 'match-card--finished' : 'match-card--upcoming'}`}>
                   {match.status === 'Match Finished' ? (
-                    <div>
-                      <div style={{ color: '#155724' }}>
-                        Final Score: {match.homeScore} - {match.awayScore}
-                      </div>
-                      {match.winner !== 'Draw' && (
-                        <div style={{ color: '#28a745', fontWeight: 'bold', marginTop: '3px' }}>
-                          ✅ Winner: {match.winner}
+                    <>
+                      <div className="match-card__vs">
+                        <span className={`match-card__home ${match.winner === match.homeTeam ? 'match-card__team--bold' : ''}`}>{getShortName(match.homeTeam)}</span>
+                        <div className="match-card__center">
+                          <div className="match-card__score">{match.homeScore} - {match.awayScore}</div>
                         </div>
-                      )}
-                      {match.winner === 'Draw' && (
-                        <div style={{ color: '#6c757d', marginTop: '3px' }}>🤝 Draw</div>
-                      )}
-                    </div>
+                        <span className={`match-card__away ${match.winner === match.awayTeam ? 'match-card__team--bold' : ''}`}>{getShortName(match.awayTeam)}</span>
+                      </div>
+                    </>
                   ) : (
-                    <div style={{ color: '#856404' }}>
-                      📅 {new Date(match.date + ' ' + match.time).toLocaleDateString()} at {match.time}
-                    </div>
+                    <>
+                      <div className="match-card__teams">{getShortName(match.homeTeam)} vs {getShortName(match.awayTeam)}</div>
+                      <div className="match-card__date">
+                        📅 {new Date(match.date + ' ' + match.time).toLocaleDateString()} at {match.time}
+                      </div>
+                    </>
                   )}
                 </div>
               ))}
@@ -477,67 +353,38 @@ function PickTeam() {
         </div>
       )}
 
-      <div className="teams-grid" style={{
-        opacity: isDeadlinePassed() ? 0.5 : 1,
-        pointerEvents: isDeadlinePassed() ? 'none' : 'auto'
-      }}>
+      <div className={`teams-grid ${isDeadlinePassed() ? 'teams-grid--locked' : ''}`}>
         {teams.map(team => {
           const isDisabled = isTeamDisabled(team.id) || isDeadlinePassed();
           const isSelected = selectedTeam === team.id;
           const wasAlreadyPicked = isTeamDisabled(team.id);
-          
+
           return (
             <div
               key={team.id}
-              className={`team-card ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+              className={`team-card ${isSelected ? 'selected' : ''} ${isDisabled ? 'disabled' : ''} ${isDeadlinePassed() && !wasAlreadyPicked ? 'team-card--locked' : ''}`}
               onClick={() => {
                 if (!isDisabled) {
                   setSelectedTeam(team.id);
                 }
               }}
-              style={{
-                cursor: isDisabled ? 'not-allowed' : 'pointer',
-                position: 'relative'
-              }}
+              tabIndex={isDisabled ? -1 : 0}
+              role="button"
+              aria-pressed={isSelected}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!isDisabled) setSelectedTeam(team.id); }}}
             >
-              <h3>{team.team_name}</h3>
-              <p>{team.team_short_name}</p>
+              <h3>{team.team_short_name}</h3>
               {wasAlreadyPicked && (
-                <p style={{fontSize: '12px', marginTop: '5px', color: '#dc3545'}}>Already picked</p>
-              )}
-              {isDeadlinePassed() && !wasAlreadyPicked && (
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  color: '#dc3545'
-                }}>
-                  LOCKED
-                </div>
+                <p className="already-picked">Already picked</p>
               )}
             </div>
           );
         })}
       </div>
 
-      <div style={{ marginTop: '30px', textAlign: 'center' }}>
+      <div className="submit-area">
         {isDeadlinePassed() ? (
-          <div style={{
-            padding: '15px',
-            backgroundColor: '#e9ecef',
-            border: '2px solid #dee2e6',
-            borderRadius: '8px',
-            color: '#6c757d'
-          }}>
+          <div className="picks-locked">
             <h4 style={{ margin: '0 0 10px 0' }}>🔒 Picks Locked</h4>
             <p style={{ margin: 0, fontSize: '14px' }}>
               The deadline has passed. Wait for match results to see who advances to the next week.
@@ -546,24 +393,20 @@ function PickTeam() {
         ) : (
           <>
             {!selectedTeam && (
-              <p style={{ color: '#6c757d', marginBottom: '15px', fontSize: '14px' }}>
+              <p className="submit-hint">
                 Select a team above to submit your pick for Week {currentWeek}
               </p>
             )}
-            <button 
-              className="submit-btn" 
-              onClick={handleSubmit} 
+            <button
+              className="submit-btn"
+              onClick={handleSubmit}
               disabled={!selectedTeam || loading}
-              style={{
-                padding: '15px 30px',
-                fontSize: '16px',
-                fontWeight: 'bold'
-              }}
+              style={{ padding: '15px 30px', fontSize: '16px', fontWeight: 'bold' }}
             >
               {loading ? 'Submitting...' : selectedTeam ? 'Submit Pick' : 'Select Team First'}
             </button>
             {selectedTeam && (
-              <p style={{ color: '#28a745', marginTop: '10px', fontSize: '14px' }}>
+              <p className="submit-ready">
                 Ready to submit: <strong>{teams.find(t => t.id === selectedTeam)?.team_name}</strong>
               </p>
             )}

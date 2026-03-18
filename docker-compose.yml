@@ -1,0 +1,21 @@
+services:
+  pocketbase:
+    build: ./pocketbase
+    ports:
+      - "8090:8090"
+    volumes:
+      - pb_data:/pb/pb_data
+      - ./pocketbase/pb_hooks:/pb/pb_hooks
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_POCKETBASE_URL: http://localhost:8090
+    ports:
+      - "3000:80"
+    depends_on:
+      - pocketbase
+
+volumes:
+  pb_data:

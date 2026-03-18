@@ -24,9 +24,9 @@ function Login() {
 
   return (
     <div className="auth-container">
-      <h2 style={{ color: '#000000' }}>Last Man Standing - Login</h2>
+      <h2>Last Man Standing - Login</h2>
       {error && <div className="error">{error}</div>}
-      
+
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label>Email</label>
@@ -37,7 +37,7 @@ function Login() {
             required
           />
         </div>
-        
+
         <div className="form-group">
           <label>Password</label>
           <input
@@ -47,27 +47,18 @@ function Login() {
             required
           />
         </div>
-        
+
         <button type="submit" disabled={loading}>
           {loading ? 'Logging in...' : 'Login'}
         </button>
       </form>
 
-      <div style={{ 
-        marginTop: '20px', 
-        padding: '15px', 
-        backgroundColor: '#e8f4fd', 
-        borderRadius: '8px', 
-        border: '1px solid #b8daff',
-        fontFamily: 'Georgia, serif',
-        fontSize: '16px',
-        color: '#000000'
-      }}>
-        <strong style={{ fontSize: '18px', color: '#000000' }}>🔐 Account Required</strong>
-        <p style={{ marginTop: '10px', lineHeight: '1.6', color: '#1a1a1a', fontWeight: '500' }}>
+      <div className="message message--info" style={{ marginTop: '20px' }}>
+        <strong>🔐 Account Required</strong>
+        <p style={{ marginTop: '10px', lineHeight: '1.6' }}>
           Don't have an account? Contact an administrator to create your account.
         </p>
-        <p style={{ marginTop: '8px', lineHeight: '1.6', color: '#1a1a1a', fontWeight: '500' }}>
+        <p style={{ marginTop: '8px', lineHeight: '1.6' }}>
           They will provide your email and password credentials.
         </p>
       </div>

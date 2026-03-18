@@ -6,6 +6,7 @@ import PickTeam from './components/PickTeam';
 import MyPicks from './components/MyPicks';
 import AllPlayersPicksHistory from './components/AllPlayersPicksHistory';
 import Admin from './components/Admin';
+import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
 function App() {
@@ -70,13 +71,15 @@ function App() {
         </nav>
         
         <div className="container">
-          <Routes>
-            <Route path="/" element={<Navigate to="/pick" />} />
-            <Route path="/pick" element={<PickTeam />} />
-            <Route path="/my-picks" element={<MyPicks />} />
-            <Route path="/history" element={<AllPlayersPicksHistory />} />
-            {user.isAdmin && <Route path="/admin" element={<Admin />} />}
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Navigate to="/pick" />} />
+              <Route path="/pick" element={<PickTeam />} />
+              <Route path="/my-picks" element={<MyPicks />} />
+              <Route path="/history" element={<AllPlayersPicksHistory />} />
+              {user.isAdmin && <Route path="/admin" element={<Admin />} />}
+            </Routes>
+          </ErrorBoundary>
         </div>
       </div>
     </Router>

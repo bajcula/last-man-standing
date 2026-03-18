@@ -46,71 +46,28 @@ function MyPicks() {
       {picks.length === 0 ? (
         <p>No picks yet</p>
       ) : (
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-          gap: '20px',
-          marginTop: '20px'
-        }}>
+        <div className="picks-grid">
           {picks.map(pick => (
-            <div key={pick.id} style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              padding: '15px',
-              border: '1px solid #e0e0e0',
-              borderRadius: '12px',
-              backgroundColor: '#f8fff9',
-              minHeight: '180px',
-              justifyContent: 'space-between'
-            }}>
-              <div style={{
-                fontSize: '16px',
-                fontWeight: 'bold',
-                color: '#333',
-                marginBottom: '15px'
-              }}>
+            <div key={pick.id} className="pick-card">
+              <div className="pick-card__week">
                 Week {pick.week_number}
               </div>
-              
-              <div style={{
-                border: '2px solid #28a745',
-                borderRadius: '8px',
-                padding: '15px',
-                backgroundColor: '#fff',
-                textAlign: 'center',
-                width: '100%',
-                minHeight: '80px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                flex: '1'
-              }}>
+              <div className="pick-card__team">
                 {pick.expand?.team_id?.team_name ? (
                   <>
-                    <strong style={{ 
-                      color: '#28a745', 
-                      fontSize: '18px',
-                      marginBottom: '8px',
-                      display: 'block'
-                    }}>
+                    <strong className="pick-card__short-name">
                       {pick.expand.team_id.team_short_name}
                     </strong>
-                    <small style={{ 
-                      color: '#666',
-                      fontSize: '12px',
-                      lineHeight: '1.2'
-                    }}>
+                    <small className="pick-card__full-name">
                       {pick.expand.team_id.team_name}
                     </small>
                   </>
                 ) : (
-                  <span style={{ color: '#dc3545', fontSize: '12px' }}>
+                  <span style={{ color: 'var(--color-danger)', fontSize: '12px' }}>
                     Team ID: {pick.team_id}
                   </span>
                 )}
               </div>
-              
             </div>
           ))}
         </div>

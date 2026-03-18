@@ -258,40 +258,17 @@ function AllPlayersPicksHistory() {
         <p>No historical picks available yet</p>
       ) : (
         <div className="history-table-container" style={{ overflowX: 'auto' }}>
-          <table className="picks-history-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
+          <table className="history-table">
             <thead>
               <tr>
-                <th style={{ 
-                  padding: '12px', 
-                  border: '1px solid #ddd', 
-                  backgroundColor: '#f5f5f5',
-                  position: 'sticky',
-                  left: 0,
-                  zIndex: 1,
-                  minWidth: '150px'
-                }}>
-                  Player
-                </th>
+                <th className="sticky-col">Player</th>
                 {availableWeeks.map(week => {
                   const weekFinished = isWeekFinished(week);
                   return (
-                    <th key={week} style={{ 
-                      padding: '8px', 
-                      border: '1px solid #ddd', 
-                      backgroundColor: weekFinished ? '#e8f5e8' : '#f5f5f5',
-                      minWidth: '70px',
-                      whiteSpace: 'nowrap',
-                      fontWeight: weekFinished ? 'bold' : 'normal',
-                      fontSize: weekFinished ? '13px' : '14px'
-                    }}>
+                    <th key={week} className={weekFinished ? 'week-done' : ''} style={{ minWidth: '70px', whiteSpace: 'nowrap' }}>
                       Week {week}
                       {weekFinished && (
-                        <div style={{ 
-                          fontSize: '10px', 
-                          color: '#28a745', 
-                          fontWeight: 'bold',
-                          marginTop: '2px'
-                        }}>
+                        <div style={{ fontSize: '10px', color: 'var(--color-success)', fontWeight: 'bold', marginTop: '2px' }}>
                           DONE
                         </div>
                       )}
@@ -303,27 +280,13 @@ function AllPlayersPicksHistory() {
             <tbody>
               {players.map(player => (
                 <tr key={player}>
-                  <td style={{ 
-                    padding: '12px', 
-                    border: '1px solid #ddd', 
-                    fontWeight: 'bold',
-                    position: 'sticky',
-                    left: 0,
-                    backgroundColor: '#fff',
-                    zIndex: 1,
-                    minWidth: '150px'
-                  }}>
+                  <td className="sticky-col" style={{ fontWeight: 'bold' }}>
                     {player}
                   </td>
                   {availableWeeks.map(week => {
                     const pick = picksData[week]?.[player];
                     return (
-                      <td key={`${player}-${week}`} style={{ 
-                        padding: '6px', 
-                        border: '1px solid #ddd',
-                        minWidth: '70px',
-                        textAlign: 'center'
-                      }}>
+                      <td key={`${player}-${week}`} style={{ padding: '6px', minWidth: '70px', textAlign: 'center' }}>
                         {pick ? (
                           <div style={{
                             border: getBorderStyle(week, pick.teamId),
@@ -355,7 +318,7 @@ function AllPlayersPicksHistory() {
       )}
       
       {availableWeeks.length > 0 && (
-        <div style={{ marginTop: '20px', fontSize: '14px', color: '#666' }}>
+        <div style={{ marginTop: '20px', fontSize: '14px', color: 'var(--color-text-muted)' }}>
           <p>🔒 Current week picks are hidden until deadline passes</p>
         </div>
       )}
