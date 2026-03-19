@@ -72,18 +72,18 @@ A Premier League "Last Man Standing" game where players pick a team each week. I
 
 ## Technical Implementation
 
-### Game Logic (src/utils/gameLogic.js)
+### Game Logic (src/utils/gameLogic.ts)
 - `getMatchWinner()`: Determines match winner from API data
 - `getFirstAvailableTeam()`: Auto-assignment logic  
 - `checkUserElimination()`: Elimination status checking
 - Full test coverage with 16 unit tests
 
 ### Components
-- **Login.jsx**: Authentication with dark text styling
-- **PickTeam.jsx**: Main game interface with auto-assignment  
-- **MyPicks.jsx**: User's pick history (no dates, just week + team)
-- **Admin.jsx**: Admin dashboard with all management tools
-- **AllPlayersPicksHistory.jsx**: Admin can see current picks, users see only past
+- **Login.tsx**: Authentication with dark text styling
+- **PickTeam.tsx**: Main game interface with auto-assignment
+- **MyPicks.tsx**: User's pick history (no dates, just week + team)
+- **Admin.tsx**: Admin dashboard with all management tools
+- **AllPlayersPicksHistory.tsx**: Admin can see current picks, users see only past
 
 ### API Integration
 - TheSportsDB API for Premier League fixture and result data
@@ -96,7 +96,7 @@ A Premier League "Last Man Standing" game where players pick a team each week. I
 1. Account created at pockethost.io ($5/month)
 2. Database URL: https://last-man-chicago.pockethost.io
 3. Collections and fields configured manually through admin UI
-4. Teams populated using `setup_teams.js` script
+4. Teams populated via seed migration on first run
 
 ### Frontend (Vercel)  
 1. Connected to GitHub repository: https://github.com/bajcula/last-man-standing  
@@ -135,7 +135,7 @@ PocketHost backend is always live at the hosted URL
 ## Game Flow
 
 ### Season Setup (Admin)
-1. Ensure teams are populated (use `repopulate_teams.js` if needed)
+1. Teams are populated via seed migration (`pb_migrations/1756200000_seed_teams.js`)
 2. Create user accounts for all players
 3. Game automatically detects current week from deadlines
 4. First deadline auto-calculated 6 hours before first match
@@ -168,14 +168,13 @@ PocketHost backend is always live at the hosted URL
 4. **Vercel 404 on refresh**: Fixed with vercel.json rewrites configuration
 
 ### Database Scripts  
-- `setup_teams.js`: Initial team population  
-- `repopulate_teams.js`: Update team data if needed
+- Teams are auto-populated via seed migration (`pb_migrations/1756200000_seed_teams.js`)
 
 ### Key Code Locations
-- Auto-assignment: `frontend/src/components/PickTeam.jsx:118-153`
-- Elimination logic: `frontend/src/components/PickTeam.jsx:155-210`  
-- Admin privileges: `frontend/src/components/AllPlayersPicksHistory.jsx:89-108`
-- Game logic tests: `frontend/src/utils/gameLogic.test.js`
+- Auto-assignment: `frontend/src/components/PickTeam.tsx`
+- Elimination logic: `frontend/src/components/PickTeam.tsx`
+- Admin privileges: `frontend/src/components/AllPlayersPicksHistory.tsx`
+- Game logic tests: `frontend/src/utils/gameLogic.test.ts`
 
 ## Performance & Scalability
 - **Tested for**: 50+ users, 38 weeks, 1000+ picks
