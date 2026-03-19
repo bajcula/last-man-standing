@@ -360,6 +360,13 @@ button:disabled {
 .match-card--postponed .match-card__team-names { display: inline-block; width: 120px; }
 .postponed-badge { display: inline-block; background: var(--color-warning); color: #856404; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: var(--radius-sm); margin-left: 8px; vertical-align: middle; text-transform: uppercase; }
 
+/* Affected picks alert */
+.affected-picks-alert { background: #fff3cd; border: 1px solid var(--color-warning); border-radius: var(--radius-md); padding: 15px; margin: 15px 0; }
+.affected-picks-alert h4 { color: #856404; margin-bottom: 8px; }
+.affected-picks-alert p { color: #856404; font-size: 13px; margin-bottom: 10px; }
+.affected-picks-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.affected-pick { background: white; border: 1px solid var(--color-warning); border-radius: var(--radius-sm); padding: 6px 10px; font-size: 13px; }
+
 /* Team grid */
 .team-card h3 { font-size: 18px; margin-bottom: 0; letter-spacing: 2px; }
 

@@ -149,10 +149,10 @@ Each phase must be completed and tested before moving to the next. Phases are or
 
 **Files**: `frontend/src/components/Admin.jsx` (or new sub-component)
 
-- [ ] Show alert in admin panel when a postponed match has active user picks
-- [ ] Admin can manually mark a team as winner for a week (override — already partially works)
-- [ ] Admin can see which users are affected by a postponement
-- [ ] Consider `"postponed"` status on picks → frontend shows "Awaiting admin decision" instead of false elimination
+- [x] Show alert in admin panel when a moved match has active user picks (after fetch in WinnersMarking)
+- [x] Admin can manually mark a team as winner for a week (override — already works via checkboxes)
+- [x] Admin can see which users are affected by a postponement (alert lists user name + team)
+- [x] Not needed: `"postponed"` status on picks — Phase 3 already prevents picking moved teams
 
 ---
 

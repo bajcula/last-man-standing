@@ -9,6 +9,7 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
   const [plMatches, setPlMatches] = useState([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [matchesMessage, setMatchesMessage] = useState('');
+  const [affectedPicks, setAffectedPicks] = useState([]);
 
   useEffect(() => {
     loadWinnersForWeek(selectedWeek);
@@ -77,6 +78,7 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
           homeScore: match.intHomeScore,
           awayScore: match.intAwayScore,
           status: match.strStatus,
+          postponed: match.strPostponed,
           date: match.dateEvent,
           time: match.strTime,
           round: match.strRound,
@@ -88,6 +90,7 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
 
         if (roundNumber === selectedWeek) {
           await prefillWinnersFromMatches(matches);
+          await checkAffectedPicks(matches);
         }
       } else {
         setMatchesMessage('No matches found for this round');
@@ -133,6 +136,47 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
       setMatchesMessage(prev => prev + ` | Pre-filled ${Object.keys(newWinners).length} winners`);
     } catch (error) {
       console.error('Error prefilling winners:', error);
+    }
+  };
+
+  const checkAffectedPicks = async (matches) => {
+    try {
+      const movedMatches = matches.filter(m =>
+        m.postponed === 'yes' || isPostponedStatus(m.status) ||
+        (m.status === 'Match Finished' && new Date(m.date) < new Date(new Date().toDateString()))
+      );
+
+      if (movedMatches.length === 0) {
+        setAffectedPicks([]);
+        return;
+      }
+
+      // Get team IDs for moved matches
+      const movedTeamIds = new Set();
+      for (const match of movedMatches) {
+        const home = findTeamByApiName(match.homeTeam, teams);
+        const away = findTeamByApiName(match.awayTeam, teams);
+        if (home) movedTeamIds.add(home.id);
+        if (away) movedTeamIds.add(away.id);
+      }
+
+      // Fetch picks for this week
+      const picks = await pb.collection('picks').getFullList({
+        filter: `week_number = ${selectedWeek}`,
+        expand: 'user_id,team_id'
+      });
+
+      const affected = picks
+        .filter(p => movedTeamIds.has(p.team_id))
+        .map(p => ({
+          userName: `${p.expand?.user_id?.first_name || ''} ${p.expand?.user_id?.last_name || ''}`.trim(),
+          teamName: p.expand?.team_id?.team_name || 'Unknown',
+          teamShort: p.expand?.team_id?.team_short_name || '???',
+        }));
+
+      setAffectedPicks(affected);
+    } catch (err) {
+      console.error('Failed to check affected picks:', err);
     }
   };
 
@@ -304,6 +348,20 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
           );
         })()}
       </div>
+
+      {affectedPicks.length > 0 && (
+        <div className="affected-picks-alert">
+          <h4>⚠️ {affectedPicks.length} user{affectedPicks.length > 1 ? 's' : ''} affected by moved matches</h4>
+          <p>These users picked teams whose matches have been moved. Consider marking their teams as winners to give them a reprieve.</p>
+          <div className="affected-picks-list">
+            {affectedPicks.map((pick, i) => (
+              <div key={i} className="affected-pick">
+                <strong>{pick.userName}</strong> picked <span className="postponed-badge">{pick.teamShort}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div>
         <h4>Select Winning Teams for Week {selectedWeek}</h4>
