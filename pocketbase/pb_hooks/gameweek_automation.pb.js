@@ -1,7 +1,11 @@
 cronAdd("gw_auto", "* * * * *", function() {
   var LEAGUE_ID = "4328";
-  var SEASON = "2025-2026";
   var START_WEEK = 30;
+
+  // Derive season from current date: Aug onward = new season
+  var now = new Date();
+  var startYear = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
+  var SEASON = startYear + "-" + (startYear + 1);
   var DEADLINE_BUFFER_HOURS = 2;
   var RESULTS_BUFFER_HOURS = 5;
   var API_BASE = "https://www.thesportsdb.com/api/v1/json/3";

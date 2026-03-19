@@ -160,12 +160,12 @@ Each phase must be completed and tested before moving to the next. Phases are or
 
 **Goal**: Fix known bugs that would bite in production.
 
-- [ ] **Dynamic season detection** — hardcoded `2025-2026` in `api.js` and hook. Derive from current date or config.
-- [ ] **Timezone handling** — deadline times parsed without explicit timezone. Standardize on UTC.
-- [ ] **Race condition on pick submit** — disable button during request to prevent double-submit.
-- [ ] **Stale team references** — picks referencing deleted team IDs show "Team ID:" fallback. Handle gracefully.
-- [ ] **API timeout** — frontend TheSportsDB calls have no timeout; can hang.
-- [ ] **Add `.env.example`** — document required env vars for new developers.
+- [x] **Dynamic season detection** — hardcoded `2025-2026` in `api.js` and hook. Derive from current date or config.
+- [x] **Timezone handling** — deadline times parsed without explicit timezone. Standardize on UTC.
+- [x] **Race condition on pick submit** — disable button during request to prevent double-submit.
+- [x] **Stale team references** — picks referencing deleted team IDs show "Team ID:" fallback. Handle gracefully.
+- [x] **API timeout** — frontend TheSportsDB calls have no timeout; can hang.
+- [x] **Add `.env.example`** — document required env vars for new developers.
 
 ---
 

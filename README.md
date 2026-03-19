@@ -204,8 +204,6 @@ cd frontend && npm test
 ✅ Complete test coverage
 ✅ Production deployment
 
-**Invite your friends and start your Last Man Standing competition today! ⚽**
-
 ---
 
 *Built with ❤️ for Premier League fans who love competition*

@@ -63,8 +63,8 @@ function MyPicks() {
                     </small>
                   </>
                 ) : (
-                  <span style={{ color: 'var(--color-danger)', fontSize: '12px' }}>
-                    Team ID: {pick.team_id}
+                  <span style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                    Team unavailable
                   </span>
                 )}
               </div>

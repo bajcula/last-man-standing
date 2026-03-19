@@ -1,12 +1,39 @@
-const SEASON = '2025-2026';
 const LEAGUE_ID = '4328'; // Premier League
+const API_TIMEOUT_MS = 15000;
+
+/**
+ * Derive the TheSportsDB season string from the current date.
+ * PL seasons run Aug–May, so Aug 1 onward is the new season.
+ */
+export const getCurrentSeason = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-indexed
+  const startYear = month >= 7 ? year : year - 1; // Aug (7) starts new season
+  return `${startYear}-${startYear + 1}`;
+};
+
+/**
+ * Fetch with a timeout to prevent hanging requests.
+ */
+const fetchWithTimeout = async (url, timeoutMs = API_TIMEOUT_MS) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(id);
+  }
+};
 
 /**
  * Fetch matches for a specific round from TheSportsDB
  */
 export const fetchRoundMatches = async (round) => {
-  const url = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=${LEAGUE_ID}&r=${round}&s=${SEASON}`;
-  const response = await fetch(url);
+  const season = getCurrentSeason();
+  const url = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=${LEAGUE_ID}&r=${round}&s=${season}`;
+  const response = await fetchWithTimeout(url);
   const data = await response.json();
   return data.events || [];
 };
@@ -16,7 +43,7 @@ export const fetchRoundMatches = async (round) => {
  */
 export const fetchLastMatches = async () => {
   const url = `https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${LEAGUE_ID}`;
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
   const data = await response.json();
   return data.events || [];
 };
@@ -37,14 +64,14 @@ export const calculateDeadlineFromMatches = (events) => {
 
   let earliest = playable[0];
   for (const match of playable) {
-    const matchDate = new Date(match.dateEvent + ' ' + match.strTime);
-    const earliestDate = new Date(earliest.dateEvent + ' ' + earliest.strTime);
+    const matchDate = new Date(match.dateEvent + 'T' + (match.strTime || '00:00:00') + 'Z');
+    const earliestDate = new Date(earliest.dateEvent + 'T' + (earliest.strTime || '00:00:00') + 'Z');
     if (matchDate < earliestDate) {
       earliest = match;
     }
   }
 
-  const firstMatchTime = new Date(earliest.dateEvent + ' ' + earliest.strTime);
+  const firstMatchTime = new Date(earliest.dateEvent + 'T' + (earliest.strTime || '00:00:00') + 'Z');
   return new Date(firstMatchTime.getTime() - (6 * 60 * 60 * 1000));
 };
 
