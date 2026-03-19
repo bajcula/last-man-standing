@@ -1,4 +1,5 @@
 import { getMatchWinner, getFirstAvailableTeam, checkUserElimination } from './gameLogic'
+import type { ApiMatch, Team, Pick, WinningTeam } from '../types'
 
 describe('getMatchWinner', () => {
   it('should return home team when home score is higher', () => {
@@ -8,7 +9,7 @@ describe('getMatchWinner', () => {
       strAwayTeam: 'Chelsea',
       intHomeScore: '3',
       intAwayScore: '1'
-    }
+    } as ApiMatch
     expect(getMatchWinner(match)).toBe('Arsenal')
   })
 
@@ -19,7 +20,7 @@ describe('getMatchWinner', () => {
       strAwayTeam: 'Chelsea',
       intHomeScore: '1',
       intAwayScore: '3'
-    }
+    } as ApiMatch
     expect(getMatchWinner(match)).toBe('Chelsea')
   })
 
@@ -30,7 +31,7 @@ describe('getMatchWinner', () => {
       strAwayTeam: 'Chelsea',
       intHomeScore: '2',
       intAwayScore: '2'
-    }
+    } as ApiMatch
     expect(getMatchWinner(match)).toBe('Draw')
   })
 
@@ -41,7 +42,7 @@ describe('getMatchWinner', () => {
       strAwayTeam: 'Chelsea',
       intHomeScore: '0',
       intAwayScore: '0'
-    }
+    } as ApiMatch
     expect(getMatchWinner(match)).toBeNull()
   })
 
@@ -52,7 +53,7 @@ describe('getMatchWinner', () => {
       strAwayTeam: 'Chelsea',
       intHomeScore: null,
       intAwayScore: undefined
-    }
+    } as unknown as ApiMatch
     expect(getMatchWinner(match)).toBe('Draw') // Both scores become 0
   })
 })
@@ -63,10 +64,10 @@ describe('getFirstAvailableTeam', () => {
     { id: '2', team_name: 'Aston Villa' },
     { id: '3', team_name: 'Brighton' },
     { id: '4', team_name: 'Arsenal' }
-  ]
+  ] as Team[]
 
-  it('should return Aston Villa (first alphabetically) when no picks made', () => {
-    const userPicks = []
+  it('should return Arsenal (first alphabetically) when no picks made', () => {
+    const userPicks: Pick[] = []
     const result = getFirstAvailableTeam(mockTeams, userPicks)
     expect(result).toEqual({ id: '4', team_name: 'Arsenal' })
   })
@@ -74,7 +75,7 @@ describe('getFirstAvailableTeam', () => {
   it('should return next available team when first is already picked', () => {
     const userPicks = [
       { team_id: '4', week_number: 1 } // Arsenal picked
-    ]
+    ] as Pick[]
     const result = getFirstAvailableTeam(mockTeams, userPicks)
     expect(result).toEqual({ id: '2', team_name: 'Aston Villa' })
   })
@@ -83,7 +84,7 @@ describe('getFirstAvailableTeam', () => {
     const userPicks = [
       { team_id: '4', week_number: 1 }, // Arsenal
       { team_id: '2', week_number: 2 }  // Aston Villa
-    ]
+    ] as Pick[]
     const result = getFirstAvailableTeam(mockTeams, userPicks)
     expect(result).toEqual({ id: '3', team_name: 'Brighton' })
   })
@@ -92,9 +93,9 @@ describe('getFirstAvailableTeam', () => {
     const userPicks = [
       { team_id: '4', week_number: 1 }, // Arsenal
       { team_id: '2', week_number: 2 }, // Aston Villa
-      { team_id: '3', team_number: 3 }, // Brighton
+      { team_id: '3', week_number: 3 }, // Brighton
       { team_id: '1', week_number: 4 }  // Chelsea
-    ]
+    ] as Pick[]
     const result = getFirstAvailableTeam(mockTeams, userPicks)
     expect(result).toBeNull()
   })
@@ -111,10 +112,10 @@ describe('checkUserElimination', () => {
     { week_number: 1, team_id: 'villa_id' },
     { week_number: 2, team_id: 'chelsea_id' },
     { week_number: 2, team_id: 'city_id' }
-  ]
+  ] as WinningTeam[]
 
   it('should not eliminate anyone in week 1', () => {
-    const userPicks = []
+    const userPicks: Pick[] = []
     const result = checkUserElimination(userPicks, mockWinningTeams, 1)
     expect(result.isEliminated).toBe(false)
     expect(result.eliminationInfo).toBeNull()
@@ -124,7 +125,7 @@ describe('checkUserElimination', () => {
     const userPicks = [
       { week_number: 1, team_id: 'arsenal_id', expand: { team_id: { team_name: 'Arsenal' } } },
       { week_number: 2, team_id: 'chelsea_id', expand: { team_id: { team_name: 'Chelsea' } } }
-    ]
+    ] as Pick[]
     const result = checkUserElimination(userPicks, mockWinningTeams, 3)
     expect(result.isEliminated).toBe(false)
     expect(result.eliminationInfo).toBeNull()
@@ -134,7 +135,7 @@ describe('checkUserElimination', () => {
     const userPicks = [
       { week_number: 1, team_id: 'arsenal_id', expand: { team_id: { team_name: 'Arsenal' } } },
       { week_number: 2, team_id: 'spurs_id', expand: { team_id: { team_name: 'Tottenham' } } }
-    ]
+    ] as Pick[]
     const result = checkUserElimination(userPicks, mockWinningTeams, 3)
     expect(result.isEliminated).toBe(true)
     expect(result.eliminationInfo).toEqual({
@@ -149,7 +150,7 @@ describe('checkUserElimination', () => {
     const userPicks = [
       { week_number: 1, team_id: 'arsenal_id', expand: { team_id: { team_name: 'Arsenal' } } }
       // No pick for week 2
-    ]
+    ] as Pick[]
     const result = checkUserElimination(userPicks, mockWinningTeams, 3)
     expect(result.isEliminated).toBe(true)
     expect(result.eliminationInfo).toEqual({
@@ -165,12 +166,12 @@ describe('checkUserElimination', () => {
       { week_number: 1, team_id: 'arsenal_id' },
       // Week 2 has no winners (wasn't played)
       { week_number: 3, team_id: 'chelsea_id' }
-    ]
+    ] as WinningTeam[]
     const userPicks = [
       { week_number: 1, team_id: 'arsenal_id', expand: { team_id: { team_name: 'Arsenal' } } },
       { week_number: 3, team_id: 'chelsea_id', expand: { team_id: { team_name: 'Chelsea' } } }
       // No pick for week 2, but that's OK since week 2 wasn't played
-    ]
+    ] as Pick[]
     const result = checkUserElimination(userPicks, mockWinningTeamsWithGaps, 4)
     expect(result.isEliminated).toBe(false)
     expect(result.eliminationInfo).toBeNull()
@@ -180,9 +181,9 @@ describe('checkUserElimination', () => {
     const userPicks = [
       { week_number: 1, team_id: 'loser_id', expand: { team_id: { team_name: 'Loser FC' } } },
       { week_number: 2, team_id: 'chelsea_id', expand: { team_id: { team_name: 'Chelsea' } } }
-    ]
+    ] as Pick[]
     const result = checkUserElimination(userPicks, mockWinningTeams, 3)
     expect(result.isEliminated).toBe(true)
-    expect(result.eliminationInfo.week).toBe(1) // Eliminated in week 1, doesn't check week 2
+    expect(result.eliminationInfo!.week).toBe(1) // Eliminated in week 1, doesn't check week 2
   })
 })

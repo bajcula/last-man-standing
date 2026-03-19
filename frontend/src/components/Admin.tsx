@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { pb } from '../lib/pocketbase';
+import type { User, Team, Deadline } from '../types';
 import UserManagement from './admin/UserManagement';
 import WinnersMarking from './admin/WinnersMarking';
 import GameReset from './admin/GameReset';
@@ -10,10 +11,10 @@ function Admin() {
   const [resetLoading, setResetLoading] = useState(false);
   const [message, setMessage] = useState('');
 
-  const [users, setUsers] = useState([]);
-  const [teams, setTeams] = useState([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [selectedWeek, setSelectedWeek] = useState(1);
-  const [currentDeadlines, setCurrentDeadlines] = useState([]);
+  const [_currentDeadlines, setCurrentDeadlines] = useState<Deadline[]>([]);
 
   useEffect(() => {
     loadData();
@@ -23,17 +24,17 @@ function Admin() {
     try {
       const usersData = await pb.collection('users').getFullList({
         sort: 'email',
-      });
+      }) as unknown as User[];
       setUsers(usersData);
 
       const teamsData = await pb.collection('teams').getFullList({
         sort: 'team_name',
-      });
+      }) as unknown as Team[];
       setTeams(teamsData);
 
       const deadlinesData = await pb.collection('deadlines').getFullList({
         sort: '-week_number',
-      });
+      }) as unknown as Deadline[];
       setCurrentDeadlines(deadlinesData);
 
       if (deadlinesData.length > 0) {
@@ -46,11 +47,11 @@ function Admin() {
     }
   };
 
-  const handleWeekChange = (newWeek) => {
+  const handleWeekChange = (newWeek: number) => {
     setSelectedWeek(newWeek);
   };
 
-  const handleResetComplete = (startWeek) => {
+  const handleResetComplete = (startWeek: number) => {
     setSelectedWeek(startWeek);
     loadData();
   };

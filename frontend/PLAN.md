@@ -169,7 +169,91 @@ Each phase must be completed and tested before moving to the next. Phases are or
 
 ---
 
-### Phase 6: Testing
+### Phase 6: Frontend TypeScript Migration
+
+**Goal**: Convert all frontend `.jsx`/`.js` source files to TypeScript for type safety and better DX.
+
+**Config & Setup:**
+- [x] Add `tsconfig.json` with strict mode
+- [x] Add `typescript` and `@types/node` to devDependencies
+- [x] Rename `vite.config.js` → `vite.config.ts`
+- [x] Update `index.html` entry point from `main.jsx` to `main.tsx`
+
+**Type Definitions:**
+- [x] Create `src/types/index.ts` — shared types for Team, Pick, Deadline, WinningTeam, User, Match, etc.
+
+**Utility Files (.js → .ts):**
+- [x] `src/lib/pocketbase.js` → `pocketbase.ts` — typed PocketBase client
+- [x] `src/utils/api.js` → `api.ts` — typed API functions
+- [x] `src/utils/gameLogic.js` → `gameLogic.ts` — typed game logic
+- [x] `src/utils/teamMapping.js` → `teamMapping.ts` — typed team mapping
+
+**Components (.jsx → .tsx):**
+- [x] `src/main.jsx` → `main.tsx`
+- [x] `src/App.jsx` → `App.tsx`
+- [x] `src/components/Login.jsx` → `Login.tsx`
+- [x] `src/components/PickTeam.jsx` → `PickTeam.tsx`
+- [x] `src/components/MyPicks.jsx` → `MyPicks.tsx`
+- [x] `src/components/AllPlayersPicksHistory.jsx` → `AllPlayersPicksHistory.tsx`
+- [x] `src/components/Admin.jsx` → `Admin.tsx`
+- [x] `src/components/ErrorBoundary.jsx` → `ErrorBoundary.tsx`
+- [x] `src/components/admin/UserManagement.jsx` → `UserManagement.tsx`
+- [x] `src/components/admin/WinnersMarking.jsx` → `WinnersMarking.tsx`
+- [x] `src/components/admin/GameReset.jsx` → `GameReset.tsx`
+
+**Tests:**
+- [x] `src/utils/gameLogic.test.js` → `gameLogic.test.ts`
+- [x] `src/test/setup.js` → `setup.ts`
+- [x] All 16 existing tests pass with TypeScript
+- [x] `tsc --noEmit` passes with zero errors
+
+**Validation:**
+- [x] `npm run build` succeeds
+- [x] Docker build succeeds
+- [x] App loads and works in browser (login, pick, admin)
+
+---
+
+### Phase 7: Backend Go Migration (Custom PocketBase App)
+
+**Goal**: Replace pre-built PocketBase binary + JS hooks with a custom Go PocketBase app. Type-safe backend with Go hooks, migrations, and proper project structure.
+
+**Project Setup:**
+- [ ] Create `backend/` directory with `go.mod` (import `github.com/pocketbase/pocketbase`)
+- [ ] Create `backend/main.go` — custom PocketBase app entry point
+- [ ] Create `backend/Dockerfile` — multi-stage Go build
+
+**Go Hooks:**
+- [ ] Convert `gameweek_automation.pb.js` → Go cron hook in `backend/hooks/gameweek.go`
+- [ ] Port all game logic: `getMatchWinner`, `findTeamByApiName`, `isUserEliminated`, etc.
+- [ ] Port TheSportsDB API client with timeout and error handling
+- [ ] Port deadline calculation, auto-assignment, winner marking
+
+**Go Migrations:**
+- [ ] Convert all 12 JS migrations to Go migrations in `backend/migrations/`
+- [ ] Seed migration for 20 PL teams
+
+**Go Tests:**
+- [ ] Unit tests for game logic functions
+- [ ] Unit tests for API client (TheSportsDB)
+- [ ] Unit tests for season detection, deadline calculation
+- [ ] Integration test for cron hook flow
+
+**Infrastructure:**
+- [ ] Update `docker-compose.yml` to build from `backend/` instead of downloading binary
+- [ ] Remove old `pocketbase/` directory (JS hooks, migrations, Dockerfile)
+- [ ] Update `.env.example` with any new env vars
+- [ ] Verify Docker build + run
+
+**Validation:**
+- [ ] `go test ./...` passes
+- [ ] Docker build succeeds
+- [ ] Full app works end-to-end (frontend ↔ Go backend)
+- [ ] Cron hook fires and processes gameweeks correctly
+
+---
+
+### Phase 8: Testing
 
 **Goal**: Confidence that changes don't break things.
 
@@ -180,7 +264,7 @@ Each phase must be completed and tested before moving to the next. Phases are or
 
 ---
 
-### Phase 7: UX Polish
+### Phase 9: UX Polish
 
 **Goal**: Better user experience.
 
@@ -194,7 +278,7 @@ Each phase must be completed and tested before moving to the next. Phases are or
 
 ---
 
-### Phase 8: Code Quality
+### Phase 10: Code Quality
 
 **Goal**: Maintainability for future changes.
 
@@ -202,7 +286,6 @@ Each phase must be completed and tested before moving to the next. Phases are or
 - [ ] `useMemo` for expensive calculations (isTeamDisabled, player sorting)
 - [ ] Extract deadline logic into custom hook
 - [ ] Consistent error handling pattern (useAsyncAction hook)
-- [ ] TypeScript migration (long-term)
 
 ---
 

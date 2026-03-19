@@ -1,21 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type KeyboardEvent } from 'react';
 import { pb } from '../lib/pocketbase';
 import { getMatchWinner, getFirstAvailableTeam, checkUserElimination } from '../utils/gameLogic';
 import { fetchRoundMatches, isPostponedStatus } from '../utils/api';
 import { findTeamByApiName } from '../utils/teamMapping';
+import type { Team, Pick, Deadline, WinningTeam, DisplayMatch, EliminationInfo, DeadlineStatus } from '../types';
 
 function PickTeam() {
-  const [teams, setTeams] = useState([]);
-  const [myPicks, setMyPicks] = useState([]);
-  const [selectedTeam, setSelectedTeam] = useState(null);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [myPicks, setMyPicks] = useState<Pick[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [currentWeek, setCurrentWeek] = useState(1);
-  const [deadline, setDeadline] = useState(null);
+  const [deadline, setDeadline] = useState<Deadline | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isEliminated, setIsEliminated] = useState(false);
-  const [eliminationInfo, setEliminationInfo] = useState(null);
-  const [weekMatches, setWeekMatches] = useState([]);
+  const [eliminationInfo, setEliminationInfo] = useState<EliminationInfo | null>(null);
+  const [weekMatches, setWeekMatches] = useState<DisplayMatch[]>([]);
   const [matchesLoading, setMatchesLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -25,33 +26,29 @@ function PickTeam() {
 
   const loadData = async () => {
     try {
-      // Get all teams
       const teamsData = await pb.collection('teams').getFullList({
         sort: 'team_name',
-      });
+      }) as unknown as Team[];
       setTeams(teamsData);
 
-      // Get my picks
       const picksData = await pb.collection('picks').getFullList({
-        filter: `user_id = "${pb.authStore.model.id}"`,
+        filter: `user_id = "${pb.authStore.model!.id}"`,
         expand: 'team_id',
-      });
+      }) as unknown as Pick[];
       setMyPicks(picksData);
 
-      // Get current week and deadline
       const deadlines = await pb.collection('deadlines').getFullList({
         sort: '-week_number',
-      });
-      
+      }) as unknown as Deadline[];
+
       let currentWeekNum = 1;
       if (deadlines.length > 0) {
-        const currentDeadline = deadlines[0];
+        const currentDeadline = deadlines[0]!;
         currentWeekNum = currentDeadline.week_number;
         setCurrentWeek(currentWeekNum);
         setDeadline(currentDeadline);
       }
 
-      // Auto-assign team for current week if user doesn't have a pick
       const thisWeekPick = picksData.find(p => p.week_number === currentWeekNum);
       if (!thisWeekPick) {
         const autoAssignedPick = await autoAssignTeam(teamsData, picksData, currentWeekNum);
@@ -64,23 +61,20 @@ function PickTeam() {
         setSelectedTeam(thisWeekPick.team_id);
       }
 
-      // Check elimination status
       await checkEliminationStatus(picksData, currentWeekNum);
-
-      // Load matches for current week
       await loadWeekMatches(currentWeekNum);
-    } catch (err) {
+    } catch {
       setError('Failed to load data');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadWeekMatches = async (weekNum) => {
+  const loadWeekMatches = async (weekNum: number) => {
     setMatchesLoading(true);
     try {
       const events = await fetchRoundMatches(weekNum);
-      const matches = events.map(match => ({
+      const matches: DisplayMatch[] = events.map(match => ({
         id: match.idEvent,
         homeTeam: match.strHomeTeam,
         awayTeam: match.strAwayTeam,
@@ -90,55 +84,57 @@ function PickTeam() {
         postponed: match.strPostponed,
         date: match.dateEvent,
         time: match.strTime,
+        round: match.strRound,
         winner: getMatchWinner(match)
       }));
       setWeekMatches(matches);
-    } catch (error) {
-      console.error('Failed to load week matches:', error);
+    } catch (err) {
+      console.error('Failed to load week matches:', err);
       setWeekMatches([]);
     } finally {
       setMatchesLoading(false);
     }
   };
 
-  const autoAssignTeam = async (allTeams, userPicks, weekNumber) => {
+  const autoAssignTeam = async (allTeams: Team[], userPicks: Pick[], weekNumber: number): Promise<Pick | null> => {
     try {
       const availableTeam = getFirstAvailableTeam(allTeams, userPicks);
-      
+
       if (!availableTeam) {
         console.error('No available teams for auto-assignment');
         return null;
       }
-      
-      // Create the pick
+
       const autoPick = await pb.collection('picks').create({
-        user_id: pb.authStore.model.id,
+        user_id: pb.authStore.model!.id,
         team_id: availableTeam.id,
         week_number: weekNumber,
       });
-      
+
       console.log(`Auto-assigned ${availableTeam.team_name} for Week ${weekNumber}`);
-      
-      // Return pick with expanded team data
+
       return {
         ...autoPick,
+        user_id: pb.authStore.model!.id,
+        team_id: availableTeam.id,
+        week_number: weekNumber,
         expand: { team_id: availableTeam }
-      };
-      
-    } catch (error) {
-      console.error('Failed to auto-assign team:', error);
+      } as Pick;
+
+    } catch (err) {
+      console.error('Failed to auto-assign team:', err);
       return null;
     }
   };
 
-  const checkEliminationStatus = async (picksData, currentWeekNum) => {
+  const checkEliminationStatus = async (picksData: Pick[], currentWeekNum: number) => {
     try {
       if (currentWeekNum <= 1) {
         setIsEliminated(false);
         return;
       }
 
-      const allWinners = await pb.collection('winning_teams').getFullList();
+      const allWinners = await pb.collection('winning_teams').getFullList() as unknown as WinningTeam[];
       if (allWinners.length === 0) {
         setIsEliminated(false);
         setEliminationInfo(null);
@@ -162,16 +158,16 @@ function PickTeam() {
 
     try {
       const existingPicks = await pb.collection('picks').getFullList({
-        filter: `user_id = "${pb.authStore.model.id}" && week_number = ${currentWeek}`,
+        filter: `user_id = "${pb.authStore.model!.id}" && week_number = ${currentWeek}`,
       });
 
       if (existingPicks.length > 0) {
-        await pb.collection('picks').update(existingPicks[0].id, {
+        await pb.collection('picks').update(existingPicks[0]!.id, {
           team_id: selectedTeam,
         });
       } else {
         await pb.collection('picks').create({
-          user_id: pb.authStore.model.id,
+          user_id: pb.authStore.model!.id,
           team_id: selectedTeam,
           week_number: currentWeek,
         });
@@ -179,14 +175,15 @@ function PickTeam() {
 
       setSuccess('Pick submitted successfully!');
       loadData();
-    } catch (err) {
-      setError(err.message || 'Failed to submit pick');
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(error.message || 'Failed to submit pick');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const getShortName = (fullName) => {
+  const getShortName = (fullName: string): string => {
     if (!fullName) return '???';
     const exact = teams.find(t => t.team_name === fullName);
     if (exact) return exact.team_short_name;
@@ -194,57 +191,57 @@ function PickTeam() {
     return partial?.team_short_name || fullName.substring(0, 3).toUpperCase();
   };
 
-  const isTeamDisabled = (teamId) => {
+  const isTeamDisabled = (teamId: string): boolean => {
     return myPicks.some(pick => pick.team_id === teamId && pick.week_number !== currentWeek);
   };
 
-  const isDeadlinePassed = () => {
+  const isDeadlinePassed = (): boolean => {
     if (!deadline) return false;
     return new Date(deadline.deadline_time) < new Date() || deadline.is_closed;
   };
 
-  const getDeadlineStatus = () => {
+  const getDeadlineStatus = (): DeadlineStatus => {
     if (!deadline) return { status: 'no-deadline', message: 'No deadline set for this week' };
-    
+
     const deadlineTime = new Date(deadline.deadline_time);
     const now = new Date();
-    const timeDiff = deadlineTime - now;
+    const timeDiff = deadlineTime.getTime() - now.getTime();
     const hoursDiff = timeDiff / (1000 * 60 * 60);
-    
+
     if (deadline.is_closed) {
-      return { 
-        status: 'closed', 
+      return {
+        status: 'closed',
         message: 'Week has been manually closed by admin',
         color: '#dc3545'
       };
     }
-    
+
     if (timeDiff <= 0) {
-      return { 
-        status: 'passed', 
+      return {
+        status: 'passed',
         message: 'Deadline has passed',
         color: '#dc3545'
       };
     }
-    
+
     if (hoursDiff <= 1) {
-      return { 
-        status: 'urgent', 
+      return {
+        status: 'urgent',
         message: `⚠️ Only ${Math.floor(timeDiff / (1000 * 60))} minutes remaining!`,
         color: '#dc3545'
       };
     }
-    
+
     if (hoursDiff <= 24) {
-      return { 
-        status: 'soon', 
+      return {
+        status: 'soon',
         message: `⏰ ${Math.round(hoursDiff)} hours remaining`,
         color: '#ffc107'
       };
     }
-    
-    return { 
-      status: 'open', 
+
+    return {
+      status: 'open',
       message: `✅ ${Math.round(hoursDiff)} hours remaining`,
       color: '#28a745'
     };
@@ -252,7 +249,6 @@ function PickTeam() {
 
   if (loading) return <div className="card">Loading...</div>;
 
-  // If user is eliminated, show elimination message
   if (isEliminated && eliminationInfo) {
     return (
       <div className="card">
@@ -291,7 +287,7 @@ function PickTeam() {
   return (
     <div className="card">
       <h2>Pick Your Team - Week {currentWeek}</h2>
-      
+
       {deadline && (
         <div className={`deadline-bar ${isDeadlinePassed() ? 'deadline-bar--passed' : 'deadline-bar--open'}`}>
           <div className="deadline-bar__header">
@@ -317,10 +313,9 @@ function PickTeam() {
 
       {/* Week Matches Section */}
       {weekMatches.length > 0 && (() => {
-        const isMoved = (m) => {
+        const isMoved = (m: DisplayMatch): boolean => {
           if (m.postponed === 'yes') return true;
           if (isPostponedStatus(m.status)) return true;
-          // Finished match played on a past date (rescheduled early)
           if (m.status === 'Match Finished') {
             const matchDate = new Date(m.date);
             const today = new Date();
@@ -382,8 +377,7 @@ function PickTeam() {
       })()}
 
       {(() => {
-        // Build set of team IDs that can't be picked (match moved/postponed or finished early)
-        const unavailableTeamIds = new Set();
+        const unavailableTeamIds = new Set<string>();
         for (const match of weekMatches) {
           const moved = match.postponed === 'yes' || isPostponedStatus(match.status) ||
             (match.status === 'Match Finished' && new Date(match.date) < new Date(new Date().toDateString()));
@@ -416,7 +410,7 @@ function PickTeam() {
                   tabIndex={isDisabled ? -1 : 0}
                   role="button"
                   aria-pressed={isSelected}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!isDisabled) setSelectedTeam(team.id); }}}
+                  onKeyDown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!isDisabled) setSelectedTeam(team.id); }}}
                 >
                   <h3>{team.team_short_name}</h3>
                   {wasAlreadyPicked && (

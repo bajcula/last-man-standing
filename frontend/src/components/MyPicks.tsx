@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { pb } from '../lib/pocketbase';
+import type { Pick } from '../types';
 
 function MyPicks() {
-  const [picks, setPicks] = useState([]);
+  const [picks, setPicks] = useState<Pick[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -12,23 +13,21 @@ function MyPicks() {
   const loadPicks = async () => {
     try {
       const picksData = await pb.collection('picks').getFullList({
-        filter: `user_id = "${pb.authStore.model.id}"`,
+        filter: `user_id = "${pb.authStore.model!.id}"`,
         expand: 'team_id',
         sort: '-week_number',
-      });
-      
-      // Remove duplicates - keep only one pick per week (first one found since we sort by week)
-      const uniquePicks = {};
+      }) as unknown as Pick[];
+
+      // Remove duplicates - keep only one pick per week
+      const uniquePicks: Record<number, Pick> = {};
       picksData.forEach(pick => {
         const week = pick.week_number;
         if (!uniquePicks[week]) {
           uniquePicks[week] = pick;
         }
       });
-      
-      // Convert back to array and sort by week number ascending (Week 1 first)
+
       const finalPicks = Object.values(uniquePicks).sort((a, b) => a.week_number - b.week_number);
-      
       setPicks(finalPicks);
     } catch (err) {
       console.error('Failed to load picks:', err);
@@ -42,7 +41,7 @@ function MyPicks() {
   return (
     <div className="card">
       <h2>My Picks History</h2>
-      
+
       {picks.length === 0 ? (
         <p>No picks yet</p>
       ) : (

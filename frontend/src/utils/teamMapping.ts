@@ -1,6 +1,6 @@
-// Team name mapping between TheSportsDB API names and our database names
-// DB uses full API names (e.g., "Brighton and Hove Albion", "Wolverhampton Wanderers")
-const TEAM_NAME_MAP = {
+import type { Team } from '../types';
+
+const TEAM_NAME_MAP: Record<string, string> = {
   // Identity mappings for all 20 DB team names
   'Arsenal': 'Arsenal',
   'Aston Villa': 'Aston Villa',
@@ -42,11 +42,8 @@ const TEAM_NAME_MAP = {
 
 /**
  * Find a team in the database by its API name
- * @param {string} apiTeamName - Team name from TheSportsDB API
- * @param {Array} teams - Array of team objects from the database
- * @returns {Object|undefined} Matching team object
  */
-export const findTeamByApiName = (apiTeamName, teams) => {
+export const findTeamByApiName = (apiTeamName: string, teams: Team[]): Team | undefined => {
   // First try direct mapping
   const mappedName = TEAM_NAME_MAP[apiTeamName];
   if (mappedName) {
@@ -61,7 +58,7 @@ export const findTeamByApiName = (apiTeamName, teams) => {
   // Try partial matches
   return teams.find(team =>
     team.team_name.includes(apiTeamName) ||
-    apiTeamName.includes(team.team_name.split(' ')[0]) ||
+    apiTeamName.includes(team.team_name.split(' ')[0]!) ||
     team.team_short_name === apiTeamName.substring(0, 3).toUpperCase()
   );
 };

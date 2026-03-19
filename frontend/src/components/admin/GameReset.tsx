@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { pb } from '../../lib/pocketbase';
 import { fetchRoundMatches, calculateDeadlineFromMatches, getFallbackDeadline } from '../../utils/api';
+import type { GameResetProps } from '../../types';
 
-function GameReset({ loading: resetLoading, setLoading: setResetLoading, message, setMessage, onResetComplete }) {
+function GameReset({ loading: resetLoading, setLoading: setResetLoading, setMessage, onResetComplete }: GameResetProps) {
   const [resetStartWeek, setResetStartWeek] = useState(1);
   const [currentWeekFromAPI, setCurrentWeekFromAPI] = useState(2);
 
-  const getCurrentPLWeek = async () => {
+  const getCurrentPLWeek = async (): Promise<number> => {
     try {
       const today = new Date();
 
@@ -89,17 +90,11 @@ function GameReset({ loading: resetLoading, setLoading: setResetLoading, message
       }
       console.log(`Deleted ${existingWinners.length} winners`);
 
-      let newDeadline;
+      let newDeadline: Date;
       try {
         const events = await fetchRoundMatches(resetStartWeek);
-        newDeadline = calculateDeadlineFromMatches(events);
-        if (!newDeadline) {
-          newDeadline = getFallbackDeadline();
-          console.log(`No matches found for Week ${resetStartWeek}, using default deadline`);
-        } else {
-          console.log(`Setting deadline for Week ${resetStartWeek}: ${newDeadline.toLocaleString()}`);
-        }
-      } catch (err) {
+        newDeadline = calculateDeadlineFromMatches(events) ?? getFallbackDeadline();
+      } catch {
         newDeadline = getFallbackDeadline();
         console.log('Failed to fetch matches, using default deadline');
       }
@@ -123,9 +118,10 @@ function GameReset({ loading: resetLoading, setLoading: setResetLoading, message
 
       onResetComplete(resetStartWeek);
 
-    } catch (err) {
-      console.error('Failed to reset game:', err);
-      setMessage('Failed to reset game: ' + err.message);
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error('Failed to reset game:', error);
+      setMessage('Failed to reset game: ' + error.message);
     } finally {
       setResetLoading(false);
     }

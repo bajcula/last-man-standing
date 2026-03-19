@@ -3,27 +3,28 @@ import { pb } from '../../lib/pocketbase';
 import { getMatchWinner } from '../../utils/gameLogic';
 import { findTeamByApiName } from '../../utils/teamMapping';
 import { fetchRoundMatches, fetchLastMatches, calculateDeadlineFromMatches, getFallbackDeadline, isPostponedStatus } from '../../utils/api';
+import type { WinnersMarkingProps, DisplayMatch, AffectedPick, Pick } from '../../types';
 
-function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading, message, setMessage }) {
-  const [winners, setWinners] = useState({});
-  const [plMatches, setPlMatches] = useState([]);
+function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading, setMessage }: WinnersMarkingProps) {
+  const [winners, setWinners] = useState<Record<string, boolean>>({});
+  const [plMatches, setPlMatches] = useState<DisplayMatch[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [matchesMessage, setMatchesMessage] = useState('');
-  const [affectedPicks, setAffectedPicks] = useState([]);
+  const [affectedPicks, setAffectedPicks] = useState<AffectedPick[]>([]);
 
   useEffect(() => {
     loadWinnersForWeek(selectedWeek);
   }, [selectedWeek]);
 
-  const loadWinnersForWeek = async (weekNum) => {
+  const loadWinnersForWeek = async (weekNum: number) => {
     try {
       const winnersData = await pb.collection('winning_teams').getFullList({
         filter: `week_number = ${weekNum}`,
       });
 
-      const winnersObj = {};
+      const winnersObj: Record<string, boolean> = {};
       winnersData.forEach(winner => {
-        winnersObj[winner.team_id] = true;
+        winnersObj[winner.team_id as string] = true;
       });
       setWinners(winnersObj);
     } catch (err) {
@@ -31,7 +32,7 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
     }
   };
 
-  const handleToggleWinner = async (teamId) => {
+  const handleToggleWinner = async (teamId: string) => {
     const newWinners = { ...winners };
 
     if (newWinners[teamId]) {
@@ -41,7 +42,7 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
           filter: `week_number = ${selectedWeek} && team_id = "${teamId}"`,
         });
         if (existing.length > 0) {
-          await pb.collection('winning_teams').delete(existing[0].id);
+          await pb.collection('winning_teams').delete(existing[0]!.id);
         }
       } catch (err) {
         console.error('Failed to remove winner:', err);
@@ -61,7 +62,7 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
     setWinners(newWinners);
   };
 
-  const fetchPremierLeagueMatches = async (roundNumber = null) => {
+  const fetchPremierLeagueMatches = async (roundNumber: number | null = null) => {
     setLoadingMatches(true);
     setMatchesMessage('');
 
@@ -71,7 +72,7 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
         : await fetchLastMatches();
 
       if (events.length > 0) {
-        const matches = events.map(match => ({
+        const matches: DisplayMatch[] = events.map(match => ({
           id: match.idEvent,
           homeTeam: match.strHomeTeam,
           awayTeam: match.strAwayTeam,
@@ -96,17 +97,18 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
         setMatchesMessage('No matches found for this round');
         setPlMatches([]);
       }
-    } catch (error) {
-      setMatchesMessage('Failed to fetch matches: ' + error.message);
+    } catch (error: unknown) {
+      const err = error as Error;
+      setMatchesMessage('Failed to fetch matches: ' + err.message);
       console.error('Error fetching matches:', error);
     } finally {
       setLoadingMatches(false);
     }
   };
 
-  const prefillWinnersFromMatches = async (matches) => {
+  const prefillWinnersFromMatches = async (matches: DisplayMatch[]) => {
     try {
-      const newWinners = {};
+      const newWinners: Record<string, boolean> = {};
 
       console.log('Matching teams from API:', matches.map(m => m.winner).filter(w => w !== 'Draw'));
 
@@ -123,8 +125,9 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
                 week_number: selectedWeek,
                 team_id: winningTeam.id,
               });
-            } catch (err) {
-              console.log('Winner already exists or error:', err.message);
+            } catch (err: unknown) {
+              const error = err as Error;
+              console.log('Winner already exists or error:', error.message);
             }
           } else {
             console.log(`No match found for: ${match.winner}`);
@@ -139,7 +142,7 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
     }
   };
 
-  const checkAffectedPicks = async (matches) => {
+  const checkAffectedPicks = async (matches: DisplayMatch[]) => {
     try {
       const movedMatches = matches.filter(m =>
         m.postponed === 'yes' || isPostponedStatus(m.status) ||
@@ -151,8 +154,7 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
         return;
       }
 
-      // Get team IDs for moved matches
-      const movedTeamIds = new Set();
+      const movedTeamIds = new Set<string>();
       for (const match of movedMatches) {
         const home = findTeamByApiName(match.homeTeam, teams);
         const away = findTeamByApiName(match.awayTeam, teams);
@@ -160,13 +162,12 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
         if (away) movedTeamIds.add(away.id);
       }
 
-      // Fetch picks for this week
       const picks = await pb.collection('picks').getFullList({
         filter: `week_number = ${selectedWeek}`,
         expand: 'user_id,team_id'
-      });
+      }) as unknown as Pick[];
 
-      const affected = picks
+      const affected: AffectedPick[] = picks
         .filter(p => movedTeamIds.has(p.team_id))
         .map(p => ({
           userName: `${p.expand?.user_id?.first_name || ''} ${p.expand?.user_id?.last_name || ''}`.trim(),
@@ -203,7 +204,7 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
       const picksData = await pb.collection('picks').getFullList({
         filter: `week_number = ${selectedWeek}`,
         expand: 'user_id,team_id'
-      });
+      }) as unknown as Pick[];
 
       console.log(`Processing ${picksData.length} picks for Week ${selectedWeek}`);
 
@@ -224,17 +225,11 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
         }
       }
 
-      let nextWeekDeadline;
+      let nextWeekDeadline: Date;
       try {
         const events = await fetchRoundMatches(selectedWeek + 1);
-        nextWeekDeadline = calculateDeadlineFromMatches(events);
-        if (!nextWeekDeadline) {
-          nextWeekDeadline = getFallbackDeadline();
-          console.log(`No matches found for Week ${selectedWeek + 1}, using default deadline`);
-        } else {
-          console.log(`Setting deadline for Week ${selectedWeek + 1}: ${nextWeekDeadline.toLocaleString()}`);
-        }
-      } catch (err) {
+        nextWeekDeadline = calculateDeadlineFromMatches(events) ?? getFallbackDeadline();
+      } catch {
         nextWeekDeadline = getFallbackDeadline();
         console.log('Failed to fetch matches, using default deadline');
       }
@@ -246,7 +241,7 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
           is_closed: false
         });
         console.log(`Created deadline for Week ${selectedWeek + 1}: ${nextWeekDeadline.toLocaleString()}`);
-      } catch (err) {
+      } catch {
         console.log(`Deadline might already exist for Week ${selectedWeek + 1}`);
       }
 
@@ -258,9 +253,10 @@ function WinnersMarking({ teams, selectedWeek, onWeekChange, loading, setLoading
         `- Next deadline: ${nextWeekDeadline.toLocaleString()}`
       );
 
-    } catch (err) {
-      console.error('Failed to submit week results:', err);
-      setMessage('Failed to submit week results: ' + err.message);
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error('Failed to submit week results:', error);
+      setMessage('Failed to submit week results: ' + error.message);
     } finally {
       setLoading(false);
     }
