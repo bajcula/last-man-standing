@@ -17,6 +17,7 @@ function PickTeam() {
   const [eliminationInfo, setEliminationInfo] = useState(null);
   const [weekMatches, setWeekMatches] = useState([]);
   const [matchesLoading, setMatchesLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -153,28 +154,22 @@ function PickTeam() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedTeam) {
-      setError('Please select a team');
-      return;
-    }
+    if (!selectedTeam || submitting) return;
 
-    setLoading(true);
+    setSubmitting(true);
     setError('');
     setSuccess('');
 
     try {
-      // Check if pick exists for this week
       const existingPicks = await pb.collection('picks').getFullList({
         filter: `user_id = "${pb.authStore.model.id}" && week_number = ${currentWeek}`,
       });
 
       if (existingPicks.length > 0) {
-        // Update existing pick
         await pb.collection('picks').update(existingPicks[0].id, {
           team_id: selectedTeam,
         });
       } else {
-        // Create new pick
         await pb.collection('picks').create({
           user_id: pb.authStore.model.id,
           team_id: selectedTeam,
@@ -187,7 +182,7 @@ function PickTeam() {
     } catch (err) {
       setError(err.message || 'Failed to submit pick');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -452,10 +447,10 @@ function PickTeam() {
             <button
               className="submit-btn"
               onClick={handleSubmit}
-              disabled={!selectedTeam || loading}
+              disabled={!selectedTeam || submitting}
               style={{ padding: '15px 30px', fontSize: '16px', fontWeight: 'bold' }}
             >
-              {loading ? 'Submitting...' : selectedTeam ? 'Submit Pick' : 'Select Team First'}
+              {submitting ? 'Submitting...' : selectedTeam ? 'Submit Pick' : 'Select Team First'}
             </button>
             {selectedTeam && (
               <p className="submit-ready">
