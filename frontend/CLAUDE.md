@@ -19,9 +19,11 @@
 - Vite (build tool)
 
 ## Project Structure
-- `src/App.jsx` - Main application component
-- `src/components/` - React components (Login, Admin, PickTeam, etc.)
-- `src/lib/pocketbase.js` - PocketBase client setup
+- `src/App.tsx` - Main application component
+- `src/types/index.ts` - Shared TypeScript type definitions
+- `src/components/` - React components (Login, Admin, PickTeam, etc.) — all TypeScript (.tsx)
+- `src/lib/pocketbase.ts` - PocketBase client setup
+- `src/utils/` - Utility functions (api, gameLogic, teamMapping) — all TypeScript (.ts)
 - `public/` - Static assets
 - `index.html` - Entry HTML file
 

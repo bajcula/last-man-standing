@@ -1,78 +1,90 @@
 import { useState, useEffect } from 'react';
 import { pb } from '../lib/pocketbase';
+import type { WinningTeam, Team, User, Pick, Deadline } from '../types';
+
+interface PlayerPick {
+  week: number;
+  teamInfo: Team | undefined;
+  pickDate: string;
+}
+
+interface PlayerData {
+  displayName: string;
+  firstName: string;
+  lastName: string;
+  eliminatedWeek: number | null;
+  picks: PlayerPick[];
+}
+
+interface OrganizedPick {
+  team: string;
+  shortName: string;
+  pickDate: string;
+  teamId: string | undefined;
+}
 
 function AllPlayersPicksHistory() {
-  const [picksData, setPicksData] = useState({});
-  const [players, setPlayers] = useState([]);
+  const [picksData, setPicksData] = useState<Record<number, Record<string, OrganizedPick>>>({});
+  const [players, setPlayers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [maxWeek, setMaxWeek] = useState(0);
-  const [winningTeams, setWinningTeams] = useState([]);
+  const [winningTeams, setWinningTeams] = useState<WinningTeam[]>([]);
   const [currentWeek, setCurrentWeek] = useState(0);
 
   useEffect(() => {
     loadHistoricalData();
   }, []);
 
-  const isWeekFinished = (week) => {
+  const isWeekFinished = (week: number): boolean => {
     return winningTeams.some(winner => winner.week_number === week);
   };
 
-  const getBorderStyle = (week, teamId) => {
+  const getBorderStyle = (week: number, teamId: string | undefined): string => {
     const weekFinished = isWeekFinished(week);
-    
-    // No border for current/ongoing week
+
     if (week === currentWeek) {
       return '2px solid #007bff';
     }
-    
-    // Check if this team won in this week
-    const teamWon = winningTeams.some(winner => 
+
+    const teamWon = teamId && winningTeams.some(winner =>
       winner.week_number === week && winner.team_id === teamId
     );
-    
+
     if (!weekFinished) {
-      // Week is ongoing or no results yet - default blue border
       return '2px solid #007bff';
     }
-    
-    // Week has results - use double border and stronger colors for finished weeks
+
     const borderWidth = '3px double';
     return teamWon ? `${borderWidth} #28a745` : `${borderWidth} #dc3545`;
   };
 
-  const calculateUserEliminations = async (users) => {
+  const calculateUserEliminations = async (users: PlayerData[]): Promise<{ eliminatedWeek: number | null }[]> => {
     try {
-      // Get all winning teams data
-      const allWinners = await pb.collection('winning_teams').getFullList();
-      
+      const allWinners = await pb.collection('winning_teams').getFullList() as unknown as WinningTeam[];
+
       return users.map(user => {
-        let eliminatedWeek = null;
-        
-        // Check each week in order
+        let eliminatedWeek: number | null = null;
+
         const sortedPicks = user.picks.sort((a, b) => a.week - b.week);
-        const maxWeek = Math.max(...user.picks.map(p => p.week), 0);
-        
-        for (let week = 1; week <= maxWeek; week++) {
+        const maxWeekVal = Math.max(...user.picks.map(p => p.week), 0);
+
+        for (let week = 1; week <= maxWeekVal; week++) {
           const pickForWeek = sortedPicks.find(p => p.week === week);
-          
+
           if (!pickForWeek) {
-            // No pick for this week - they would be eliminated
-            // (though our system auto-assigns, so this shouldn't happen)
             continue;
           }
-          
-          // Check if their pick won
-          const teamWon = allWinners.some(winner => 
+
+          const teamWon = allWinners.some(winner =>
             winner.week_number === week && winner.team_id === pickForWeek.teamInfo?.id
           );
-          
+
           if (!teamWon && allWinners.some(w => w.week_number === week)) {
-            // There are winners for this week, but this user's pick wasn't one
             eliminatedWeek = week;
             break;
           }
         }
-        
+
         return { eliminatedWeek };
       });
     } catch (err) {
@@ -83,23 +95,19 @@ function AllPlayersPicksHistory() {
 
   const loadHistoricalData = async () => {
     try {
-      // Get all picks with user and team info
       const picks = await pb.collection('picks').getFullList({
         expand: 'user_id,team_id',
         sort: 'week_number',
-      });
-      
-      // Manual user expansion since PocketBase expand might not work for auth users
+      }) as unknown as Pick[];
+
       try {
-        const users = await pb.collection('users').getFullList();
-        
-        // Create user lookup
-        const userLookup = {};
+        const users = await pb.collection('users').getFullList() as unknown as User[];
+
+        const userLookup: Record<string, User> = {};
         users.forEach(user => {
           userLookup[user.id] = user;
         });
-        
-        // Update picks with manual user data
+
         picks.forEach(pick => {
           if (!pick.expand?.user_id && userLookup[pick.user_id]) {
             if (!pick.expand) pick.expand = {};
@@ -110,103 +118,87 @@ function AllPlayersPicksHistory() {
         console.log('Could not load users directly:', userErr);
       }
 
-      // Get all deadlines to check which weeks are closed
       const deadlines = await pb.collection('deadlines').getFullList({
         sort: 'week_number',
-      });
+      }) as unknown as Deadline[];
 
-      // Get winning teams data
-      const allWinners = await pb.collection('winning_teams').getFullList();
+      const allWinners = await pb.collection('winning_teams').getFullList() as unknown as WinningTeam[];
       setWinningTeams(allWinners);
 
-      // Determine current week (latest week with active/upcoming deadline)
       const now = new Date();
-      const currentWeekData = deadlines.find(d => 
-        new Date(d.deadline_time) > now || d.status === 'active'
+      const currentWeekData = deadlines.find(d =>
+        new Date(d.deadline_time) > now
       );
       if (currentWeekData) {
         setCurrentWeek(currentWeekData.week_number);
       }
 
-      // Check if current user is admin
-      const currentUser = pb.authStore.model;
+      const currentUser = pb.authStore.model as unknown as User | null;
       const isAdmin = currentUser?.isAdmin || false;
 
-      // Filter picks to only show weeks where deadline has passed (unless user is admin)
-      let filteredPicks;
+      let filteredPicks: Pick[];
       if (isAdmin) {
-        // Admin can see all picks, including current week
         filteredPicks = picks;
       } else {
-        // Regular users only see picks after deadline has passed
-        const now = new Date();
         const closedWeeks = deadlines
           .filter(d => new Date(d.deadline_time) < now || d.is_closed)
           .map(d => d.week_number);
 
-        filteredPicks = picks.filter(pick => 
+        filteredPicks = picks.filter(pick =>
           closedWeeks.includes(pick.week_number)
         );
       }
 
-      // Get all unique users and their elimination status
-      const userMap = new Map();
-      
+      const userMap = new Map<string, PlayerData>();
+
       filteredPicks.forEach(pick => {
         const user = pick.expand?.user_id;
         const userId = pick.user_id;
-        
+
         if (!userMap.has(userId)) {
-          let displayName;
+          let displayName: string;
           if (user?.first_name && user?.last_name) {
             displayName = `${user.last_name}, ${user.first_name}`;
-          } else if (user?.firstName && user?.lastName) {
-            displayName = `${user.lastName}, ${user.firstName}`;
-          } else if (user?.name) {
-            displayName = user.name;
           } else {
             displayName = `User ${userId.substring(0, 8)}...`;
           }
-          
+
           userMap.set(userId, {
             displayName,
-            firstName: user?.first_name || user?.firstName || '',
-            lastName: user?.last_name || user?.lastName || '',
+            firstName: user?.first_name || '',
+            lastName: user?.last_name || '',
             eliminatedWeek: null,
             picks: []
           });
         }
-        
-        userMap.get(userId).picks.push({
+
+        userMap.get(userId)!.picks.push({
           week: pick.week_number,
           teamInfo: pick.expand?.team_id,
           pickDate: pick.created
         });
       });
 
-      // Calculate elimination status for each user
       const userElimination = await calculateUserEliminations(Array.from(userMap.values()));
-      
-      // Update userMap with elimination info
+
       userElimination.forEach((eliminationInfo, index) => {
         const userArray = Array.from(userMap.values());
-        userArray[index].eliminatedWeek = eliminationInfo.eliminatedWeek;
+        userArray[index]!.eliminatedWeek = eliminationInfo.eliminatedWeek;
       });
 
-      // Organize picks by week and player
-      const organized = {};
+      const organized: Record<number, Record<string, OrganizedPick>> = {};
       let maxWeekFound = 0;
 
       filteredPicks.forEach(pick => {
         const week = pick.week_number;
-        const user = userMap.get(pick.user_id);
+        const user = userMap.get(pick.user_id)!;
         const playerName = user.displayName;
         const teamInfo = pick.expand?.team_id;
 
         if (!organized[week]) {
           organized[week] = {};
         }
-        organized[week][playerName] = {
+        organized[week]![playerName] = {
           team: teamInfo?.team_name || 'Unknown Team',
           shortName: teamInfo?.team_short_name || 'UNK',
           pickDate: pick.created,
@@ -216,21 +208,16 @@ function AllPlayersPicksHistory() {
         maxWeekFound = Math.max(maxWeekFound, week);
       });
 
-      // Sort players: active players first (alphabetically), then eliminated players (by elimination round, then alphabetically)
       const sortedPlayers = Array.from(userMap.values()).sort((a, b) => {
-        // Active players (not eliminated) come first
         if (a.eliminatedWeek === null && b.eliminatedWeek !== null) return -1;
         if (a.eliminatedWeek !== null && b.eliminatedWeek === null) return 1;
-        
-        // Both eliminated or both active
+
         if (a.eliminatedWeek !== null && b.eliminatedWeek !== null) {
-          // Sort by elimination week (later elimination = better ranking)
           if (a.eliminatedWeek !== b.eliminatedWeek) {
             return b.eliminatedWeek - a.eliminatedWeek;
           }
         }
-        
-        // Same elimination status, sort alphabetically by last name
+
         return a.displayName.localeCompare(b.displayName);
       }).map(user => user.displayName);
 
@@ -253,7 +240,7 @@ function AllPlayersPicksHistory() {
     <div className="card">
       <h2>All Players - Historical Picks</h2>
       <p>Shows all picks for weeks where the deadline has passed</p>
-      
+
       {availableWeeks.length === 0 ? (
         <p>No historical picks available yet</p>
       ) : (
@@ -296,8 +283,8 @@ function AllPlayersPicksHistory() {
                             textAlign: 'center',
                             minWidth: '50px'
                           }}>
-                            <strong style={{ 
-                              color: '#007bff', 
+                            <strong style={{
+                              color: '#007bff',
                               fontSize: '14px',
                               display: 'block'
                             }}>
@@ -316,7 +303,7 @@ function AllPlayersPicksHistory() {
           </table>
         </div>
       )}
-      
+
       {availableWeeks.length > 0 && (
         <div style={{ marginTop: '20px', fontSize: '14px', color: 'var(--color-text-muted)' }}>
           <p>🔒 Current week picks are hidden until deadline passes</p>

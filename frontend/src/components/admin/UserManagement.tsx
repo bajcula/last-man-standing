@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { pb } from '../../lib/pocketbase';
+import type { UserManagementProps } from '../../types';
 
-function UserManagement({ users, loading, message, setMessage, onUserCreated }) {
+function UserManagement({ users, loading, setMessage, onUserCreated }: UserManagementProps) {
   const [newUser, setNewUser] = useState({
     firstName: '',
     lastName: '',
@@ -10,7 +11,7 @@ function UserManagement({ users, loading, message, setMessage, onUserCreated }) 
   });
   const [creating, setCreating] = useState(false);
 
-  const handleCreateUser = async (e) => {
+  const handleCreateUser = async (e: FormEvent) => {
     e.preventDefault();
     if (!newUser.firstName || !newUser.lastName || !newUser.email || !newUser.password) {
       setMessage('All fields are required');
@@ -33,9 +34,10 @@ function UserManagement({ users, loading, message, setMessage, onUserCreated }) 
       setMessage('User created successfully!');
       setNewUser({ firstName: '', lastName: '', email: '', password: '' });
       onUserCreated();
-    } catch (err) {
+    } catch (err: unknown) {
+      const pbErr = err as { response?: { data?: { message?: string } }; message?: string };
       console.error('Failed to create user:', err);
-      setMessage(err.response?.data?.message || 'Failed to create user');
+      setMessage(pbErr.response?.data?.message || 'Failed to create user');
     } finally {
       setCreating(false);
     }

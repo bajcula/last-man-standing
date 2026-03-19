@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { pb } from '../lib/pocketbase';
 
 function Login() {
@@ -7,16 +7,17 @@ function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
       await pb.collection('users').authWithPassword(email, password);
-    } catch (err) {
+    } catch (err: unknown) {
+      const pbErr = err as { response?: { data?: { message?: string } }; message?: string };
       console.error('Auth error:', err);
-      setError(err.response?.data?.message || err.message || 'Authentication failed');
+      setError(pbErr.response?.data?.message || pbErr.message || 'Authentication failed');
     } finally {
       setLoading(false);
     }
