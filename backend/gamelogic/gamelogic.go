@@ -1,6 +1,10 @@
 package gamelogic
 
-import "sort"
+import (
+	"fmt"
+	"sort"
+	"time"
+)
 
 // Pick represents a user's team pick for a week.
 type Pick struct {
@@ -20,6 +24,17 @@ type Team struct {
 	TeamName  string
 	ShortName string
 }
+
+// Match holds the fields needed for deadline calculation.
+type Match struct {
+	DateEvent string // "2026-03-20"
+	StrTime   string // "15:00:00"
+	Status    string // "Match Finished", "Not Started", etc.
+	Postponed string // "yes" or ""
+}
+
+// DeadlineBufferHours is the number of hours before kickoff that picks close.
+const DeadlineBufferHours = 2
 
 // GetMatchWinner returns the winning team name, "Draw" for draws,
 // or "" if the match is not finished.
@@ -99,4 +114,45 @@ func GetFirstAvailableTeam(usedTeamIDs []string, allTeams []Team) *Team {
 		}
 	}
 	return nil
+}
+
+// GetCurrentSeason returns the PL season string (e.g. "2025-2026") for the given time.
+// The season starts in August and ends in July of the following year.
+func GetCurrentSeason(now time.Time) string {
+	startYear := now.Year()
+	if now.Month() < time.August {
+		startYear--
+	}
+	return fmt.Sprintf("%d-%d", startYear, startYear+1)
+}
+
+// CalculateDeadline returns the deadline time for picks, calculated as
+// DeadlineBufferHours before the earliest future, non-postponed match kickoff.
+// If no future matches exist, it falls back to 7 days from now at 12:00 UTC.
+func CalculateDeadline(matches []Match, now time.Time) time.Time {
+	var earliest *time.Time
+	for _, m := range matches {
+		if m.Postponed == "yes" {
+			continue
+		}
+		strTime := m.StrTime
+		if strTime == "" {
+			strTime = "00:00:00"
+		}
+		ko, err := time.Parse("2006-01-02T15:04:05", m.DateEvent+"T"+strTime)
+		if err != nil {
+			continue
+		}
+		if ko.Before(now) {
+			continue
+		}
+		if earliest == nil || ko.Before(*earliest) {
+			earliest = &ko
+		}
+	}
+	if earliest != nil {
+		return earliest.Add(-time.Duration(DeadlineBufferHours) * time.Hour)
+	}
+	fallback := now.AddDate(0, 0, 7)
+	return time.Date(fallback.Year(), fallback.Month(), fallback.Day(), 12, 0, 0, 0, time.UTC)
 }
