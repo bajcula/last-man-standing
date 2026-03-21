@@ -1,20 +1,109 @@
 import { useState, useEffect } from 'react';
 import { pb } from '../lib/pocketbase';
-import type { User, Team, Deadline } from '../types';
+import type { User, Pick, Deadline } from '../types';
 import UserManagement from './admin/UserManagement';
-import WinnersMarking from './admin/WinnersMarking';
 import GameReset from './admin/GameReset';
 
-function Admin() {
-  const [activeTab, setActiveTab] = useState('users');
-  const [loading, setLoading] = useState(false);
-  const [resetLoading, setResetLoading] = useState(false);
-  const [message, setMessage] = useState('');
+function CurrentWeekPicks() {
+  const [picks, setPicks] = useState<Pick[]>([]);
+  const [currentWeek, setCurrentWeek] = useState(0);
+  const [deadline, setDeadline] = useState<Deadline | null>(null);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    loadCurrentPicks();
+  }, []);
+
+  const loadCurrentPicks = async () => {
+    try {
+      const deadlines = await pb.collection('deadlines').getFullList({
+        sort: '-week_number',
+      }) as unknown as Deadline[];
+
+      if (deadlines.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const current = deadlines[0]!;
+      setCurrentWeek(current.week_number);
+      setDeadline(current);
+
+      const picksData = await pb.collection('picks').getFullList({
+        filter: `week_number = ${current.week_number}`,
+        expand: 'user_id,team_id',
+        sort: 'created',
+      }) as unknown as Pick[];
+
+      setPicks(picksData);
+    } catch (err) {
+      console.error('Failed to load current picks:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) return <p>Loading...</p>;
+  if (currentWeek === 0) return <p>No active week yet.</p>;
+
+  const deadlinePassed = deadline && (new Date(deadline.deadline_time) < new Date() || deadline.is_closed);
+
+  return (
+    <div>
+      <h3>Week {currentWeek} Picks</h3>
+      <p style={{ color: 'var(--color-text-muted)', marginBottom: '16px' }}>
+        {deadlinePassed
+          ? 'Deadline has passed — picks are locked.'
+          : `Deadline: ${new Date(deadline!.deadline_time).toLocaleString()}`
+        }
+      </p>
+
+      {picks.length === 0 ? (
+        <p>No picks submitted yet for Week {currentWeek}.</p>
+      ) : (
+        <table className="history-table" style={{ marginTop: '10px' }}>
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Team</th>
+              <th>Picked At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {picks.map(pick => {
+              const user = pick.expand?.user_id;
+              const team = pick.expand?.team_id;
+              const name = user?.first_name && user?.last_name
+                ? `${user.first_name} ${user.last_name}`
+                : 'Unknown';
+
+              return (
+                <tr key={pick.id}>
+                  <td style={{ fontWeight: 'bold' }}>{name}</td>
+                  <td>
+                    <strong>{team?.team_short_name || '???'}</strong>
+                    <span style={{ color: 'var(--color-text-muted)', marginLeft: '8px', fontSize: '13px' }}>
+                      {team?.team_name || ''}
+                    </span>
+                  </td>
+                  <td style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                    {new Date(pick.created).toLocaleString()}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+function Admin() {
+  const [activeTab, setActiveTab] = useState('picks');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
   const [users, setUsers] = useState<User[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedWeek, setSelectedWeek] = useState(1);
-  const [_currentDeadlines, setCurrentDeadlines] = useState<Deadline[]>([]);
 
   useEffect(() => {
     loadData();
@@ -26,34 +115,10 @@ function Admin() {
         sort: 'email',
       }) as unknown as User[];
       setUsers(usersData);
-
-      const teamsData = await pb.collection('teams').getFullList({
-        sort: 'team_name',
-      }) as unknown as Team[];
-      setTeams(teamsData);
-
-      const deadlinesData = await pb.collection('deadlines').getFullList({
-        sort: '-week_number',
-      }) as unknown as Deadline[];
-      setCurrentDeadlines(deadlinesData);
-
-      if (deadlinesData.length > 0) {
-        const currentWeek = Math.max(...deadlinesData.map(d => d.week_number));
-        setSelectedWeek(currentWeek);
-      }
     } catch (err) {
       console.error('Failed to load data:', err);
       setMessage('Failed to load data');
     }
-  };
-
-  const handleWeekChange = (newWeek: number) => {
-    setSelectedWeek(newWeek);
-  };
-
-  const handleResetComplete = (startWeek: number) => {
-    setSelectedWeek(startWeek);
-    loadData();
   };
 
   return (
@@ -66,8 +131,13 @@ function Admin() {
         </div>
       )}
 
-      {/* Tab Navigation */}
       <div className="admin-tabs">
+        <button
+          onClick={() => setActiveTab('picks')}
+          className={`admin-tab ${activeTab === 'picks' ? 'admin-tab--active' : ''}`}
+        >
+          Current Picks
+        </button>
         <button
           onClick={() => setActiveTab('users')}
           className={`admin-tab ${activeTab === 'users' ? 'admin-tab--active' : ''}`}
@@ -75,26 +145,15 @@ function Admin() {
           Manage Users
         </button>
         <button
-          onClick={() => setActiveTab('winners')}
-          className={`admin-tab ${activeTab === 'winners' ? 'admin-tab--active' : ''}`}
-        >
-          Mark Winners
-        </button>
-        <button
-          onClick={() => setActiveTab('picks')}
-          className={`admin-tab admin-tab--success ${activeTab === 'picks' ? 'admin-tab--active' : ''}`}
-        >
-          View All Picks
-        </button>
-        <button
           onClick={() => setActiveTab('reset')}
           className={`admin-tab admin-tab--danger ${activeTab === 'reset' ? 'admin-tab--active' : ''}`}
         >
-          🚨 Reset Game
+          Reset Game
         </button>
       </div>
 
-      {/* Users Tab */}
+      {activeTab === 'picks' && <CurrentWeekPicks />}
+
       {activeTab === 'users' && (
         <UserManagement
           users={users}
@@ -105,27 +164,13 @@ function Admin() {
         />
       )}
 
-      {/* Winners Tab */}
-      {activeTab === 'winners' && (
-        <WinnersMarking
-          teams={teams}
-          selectedWeek={selectedWeek}
-          onWeekChange={handleWeekChange}
+      {activeTab === 'reset' && (
+        <GameReset
           loading={loading}
           setLoading={setLoading}
           message={message}
           setMessage={setMessage}
-        />
-      )}
-
-      {/* Reset Game Tab */}
-      {activeTab === 'reset' && (
-        <GameReset
-          loading={resetLoading}
-          setLoading={setResetLoading}
-          message={message}
-          setMessage={setMessage}
-          onResetComplete={handleResetComplete}
+          onResetComplete={() => loadData()}
         />
       )}
     </div>

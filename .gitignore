@@ -43,3 +43,6 @@ Thumbs.db
 # Go build output
 backend/pocketbase
 backend/backend
+
+# PocketBase local data
+backend/pb_data/
