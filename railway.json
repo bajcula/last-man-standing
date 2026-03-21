@@ -1,5 +1,13 @@
 {
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "backend/Dockerfile",
+    "watchPatterns": ["backend/**"]
+  },
   "deploy": {
-    "startCommand": "chmod +x pocketbase/pocketbase && ./pocketbase/pocketbase serve --http=0.0.0.0:$PORT"
+    "startCommand": "/pb/pocketbase serve --http=0.0.0.0:$PORT",
+    "healthcheckPath": "/api/health",
+    "restartPolicyType": "ON_FAILURE"
   }
 }

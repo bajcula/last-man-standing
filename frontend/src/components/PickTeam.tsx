@@ -317,10 +317,9 @@ function PickTeam() {
           if (m.postponed === 'yes') return true;
           if (isPostponedStatus(m.status)) return true;
           if (m.status === 'Match Finished') {
-            const matchDate = new Date(m.date);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            return matchDate < today;
+            const now = new Date();
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            return m.date < todayStr;
           }
           return false;
         };
@@ -349,11 +348,15 @@ function PickTeam() {
               <>
                 <div className="matches-grid">
                   {upcomingMatches.map(match => (
-                    <div key={match.id} className="match-card match-card--upcoming">
-                      <div className="match-card__teams">{getShortName(match.homeTeam)} vs {getShortName(match.awayTeam)}</div>
-                      <div className="match-card__date">
-                        📅 {new Date(match.date + ' ' + match.time).toLocaleDateString()} at {match.time}
+                    <div key={match.id} className={`match-card ${match.status === 'Match Finished' ? 'match-card--finished' : 'match-card--upcoming'}`}>
+                      <div className="match-card__teams">
+                        {getShortName(match.homeTeam)} {match.status === 'Match Finished' ? `${match.homeScore} - ${match.awayScore}` : 'vs'} {getShortName(match.awayTeam)}
                       </div>
+                      {match.status !== 'Match Finished' && (
+                        <div className="match-card__date">
+                          📅 {new Date(match.date + ' ' + match.time).toLocaleDateString()} at {match.time}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -379,8 +382,10 @@ function PickTeam() {
       {(() => {
         const unavailableTeamIds = new Set<string>();
         for (const match of weekMatches) {
+          const now = new Date();
+          const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
           const moved = match.postponed === 'yes' || isPostponedStatus(match.status) ||
-            (match.status === 'Match Finished' && new Date(match.date) < new Date(new Date().toDateString()));
+            (match.status === 'Match Finished' && match.date < todayStr);
           if (moved) {
             const homeTeam = findTeamByApiName(match.homeTeam, teams);
             const awayTeam = findTeamByApiName(match.awayTeam, teams);

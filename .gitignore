@@ -1,11 +1,8 @@
 # Environment variables
 .env
 
-# PocketBase data (created at runtime by migrations)
-pocketbase/pb_data/*.db
-pocketbase/pb_data/*.db-shm
-pocketbase/pb_data/*.db-wal
-pocketbase/pb_data/storage/
+# Old pocketbase directory (kept locally, removed from git)
+pocketbase/
 
 # Node modules
 node_modules/
@@ -42,3 +39,7 @@ node_modules/
 Thumbs.db
 .superpowers/
 .playwright-mcp/
+
+# Go build output
+backend/pocketbase
+backend/backend
