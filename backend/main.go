@@ -22,6 +22,7 @@ func main() {
 	})
 
 	hooks.RegisterGameweekCron(app)
+	hooks.RegisterPicksGuard(app)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 		se.Router.GET("/api/health", func(e *core.RequestEvent) error {
