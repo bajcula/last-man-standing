@@ -29,3 +29,34 @@ func TestGetMatchWinner(t *testing.T) {
 		})
 	}
 }
+
+func TestIsUserEliminated(t *testing.T) {
+	winners := []Winner{
+		{TeamID: "arsenal_id", WeekNumber: 1},
+		{TeamID: "villa_id", WeekNumber: 1},
+		{TeamID: "chelsea_id", WeekNumber: 2},
+		{TeamID: "city_id", WeekNumber: 2},
+	}
+	tests := []struct {
+		name        string
+		picks       []Pick
+		winners     []Winner
+		currentWeek int
+		want        bool
+	}{
+		{"week 1 — nobody eliminated", []Pick{}, winners, 1, false},
+		{"winning picks — not eliminated", []Pick{{TeamID: "arsenal_id", WeekNumber: 1}, {TeamID: "chelsea_id", WeekNumber: 2}}, winners, 3, false},
+		{"losing pick — eliminated", []Pick{{TeamID: "arsenal_id", WeekNumber: 1}, {TeamID: "spurs_id", WeekNumber: 2}}, winners, 3, true},
+		{"no pick for played week — eliminated", []Pick{{TeamID: "arsenal_id", WeekNumber: 1}}, winners, 3, true},
+		{"skip weeks with no declared winners", []Pick{{TeamID: "arsenal_id", WeekNumber: 1}, {TeamID: "chelsea_id", WeekNumber: 3}}, []Winner{{TeamID: "arsenal_id", WeekNumber: 1}, {TeamID: "chelsea_id", WeekNumber: 3}}, 4, false},
+		{"eliminated on first losing week", []Pick{{TeamID: "loser_id", WeekNumber: 1}, {TeamID: "chelsea_id", WeekNumber: 2}}, winners, 3, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := IsUserEliminated(tt.picks, tt.winners, tt.currentWeek)
+			if got != tt.want {
+				t.Errorf("IsUserEliminated() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
