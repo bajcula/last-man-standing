@@ -8,6 +8,7 @@ import MyPicks from './components/MyPicks';
 import AllPlayersPicksHistory from './components/AllPlayersPicksHistory';
 import Admin from './components/Admin';
 import ErrorBoundary from './components/ErrorBoundary';
+import NotFound from './components/NotFound';
 import './App.css';
 
 function App() {
@@ -75,7 +76,8 @@ function App() {
               <Route path="/pick" element={<PickTeam />} />
               <Route path="/my-picks" element={<MyPicks />} />
               <Route path="/history" element={<AllPlayersPicksHistory />} />
-              {user.isAdmin && <Route path="/admin" element={<Admin />} />}
+              <Route path="/admin" element={user.isAdmin ? <Admin /> : <Navigate to="/pick" />} />
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </ErrorBoundary>
         </div>
