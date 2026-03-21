@@ -32,7 +32,6 @@ function CurrentWeekPicks() {
       const picksData = await pb.collection('picks').getFullList({
         filter: `week_number = ${current.week_number}`,
         expand: 'user_id,team_id',
-        sort: 'created',
       }) as unknown as Pick[];
 
       setPicks(picksData);
@@ -66,7 +65,6 @@ function CurrentWeekPicks() {
             <tr>
               <th>Player</th>
               <th>Team</th>
-              <th>Picked At</th>
             </tr>
           </thead>
           <tbody>
@@ -85,9 +83,6 @@ function CurrentWeekPicks() {
                     <span style={{ color: 'var(--color-text-muted)', marginLeft: '8px', fontSize: '13px' }}>
                       {team?.team_name || ''}
                     </span>
-                  </td>
-                  <td style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
-                    {new Date(pick.created).toLocaleString()}
                   </td>
                 </tr>
               );

@@ -22,27 +22,20 @@ func RegisterPicksGuard(app core.App) {
 		return e.Next()
 	})
 
-	// Filter out other users' picks for open weeks (non-admins only)
+	// Filter out other users' picks for open weeks (non-admins only).
+	// At this point e.Records and e.Result are already populated by PocketBase.
+	// We modify both before e.Next() which enriches e.Records and sends e.Result as JSON.
 	app.OnRecordsListRequest("picks").BindFunc(func(e *core.RecordsListRequestEvent) error {
-		if err := e.Next(); err != nil {
-			return err
-		}
-
 		auth := e.Auth
-		if auth == nil {
-			return nil
-		}
-
-		// Admins see everything
-		if auth.GetBool("isAdmin") {
-			return nil
+		if auth == nil || auth.GetBool("isAdmin") {
+			return e.Next()
 		}
 
 		// Find open (non-passed) deadline weeks
 		now := time.Now().UTC()
 		deadlines, err := app.FindRecordsByFilter("deadlines", "id != ''", "", 0, 0)
 		if err != nil {
-			return nil
+			return e.Next()
 		}
 
 		openWeeks := map[int]bool{}
@@ -54,9 +47,8 @@ func RegisterPicksGuard(app core.App) {
 			}
 		}
 
-		// If no open weeks, nothing to filter
 		if len(openWeeks) == 0 {
-			return nil
+			return e.Next()
 		}
 
 		// Remove other users' picks for open weeks
@@ -68,9 +60,12 @@ func RegisterPicksGuard(app core.App) {
 				filtered = append(filtered, r)
 			}
 		}
-		e.Records = filtered
 
-		return nil
+		e.Records = filtered
+		e.Result.Items = filtered
+		e.Result.TotalItems = len(filtered)
+
+		return e.Next()
 	})
 }
 
