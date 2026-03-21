@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, NavLink } from 'react-router-dom';
 import { pb } from './lib/pocketbase';
 import type { User } from './types';
 import Login from './components/Login';
@@ -58,10 +58,10 @@ function App() {
           <div className="nav-content">
             <h2>Last Man Standing</h2>
             <div className="nav-links">
-              <Link to="/pick">Pick Team</Link>
-              <Link to="/my-picks">My Picks</Link>
-              <Link to="/history">All Players History</Link>
-              {user.isAdmin && <Link to="/admin">Admin</Link>}
+              <NavLink to="/pick">Pick Team</NavLink>
+              <NavLink to="/my-picks">My Picks</NavLink>
+              <NavLink to="/history">All Players History</NavLink>
+              {user.isAdmin && <NavLink to="/admin">Admin</NavLink>}
               {user.isAdmin && <span className="admin-badge">ADMIN</span>}
               <span>Welcome, {user.first_name || user.username}!</span>
               <button className="logout-btn" onClick={logout}>Logout</button>
