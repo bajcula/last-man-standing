@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate, NavLink } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate, NavLink, useLocation } from 'react-router-dom';
 import { pb } from './lib/pocketbase';
 import type { User } from './types';
 import Login from './components/Login';
@@ -10,6 +10,60 @@ import Admin from './components/Admin';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotFound from './components/NotFound';
 import './App.css';
+
+function NavBar({ user, logout }: { user: User; logout: () => void }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+
+  // Close menu on route change
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [menuOpen]);
+
+  return (
+    <nav className="nav" ref={menuRef}>
+      <div className="nav-content">
+        <div className="nav-header">
+          <h2>Last Man Standing</h2>
+          <button
+            className="hamburger"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Toggle menu"
+            aria-expanded={menuOpen}
+          >
+            <span className={`hamburger__line ${menuOpen ? 'hamburger__line--open' : ''}`} />
+            <span className={`hamburger__line ${menuOpen ? 'hamburger__line--open' : ''}`} />
+            <span className={`hamburger__line ${menuOpen ? 'hamburger__line--open' : ''}`} />
+          </button>
+        </div>
+        <div className={`nav-links ${menuOpen ? 'nav-links--open' : ''}`}>
+          <NavLink to="/pick">Pick Team</NavLink>
+          <NavLink to="/my-picks">My Picks</NavLink>
+          <NavLink to="/history">All Players</NavLink>
+          {user.isAdmin && <NavLink to="/admin">Admin</NavLink>}
+          <div className="nav-user">
+            {user.isAdmin && <span className="admin-badge">ADMIN</span>}
+            <span className="nav-welcome">Hi, {user.first_name || user.username}!</span>
+            <button className="logout-btn" onClick={logout}>Logout</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
 
 function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -54,20 +108,7 @@ function App() {
   return (
     <Router>
       <div>
-        <nav className="nav">
-          <div className="nav-content">
-            <h2>Last Man Standing</h2>
-            <div className="nav-links">
-              <NavLink to="/pick">Pick Team</NavLink>
-              <NavLink to="/my-picks">My Picks</NavLink>
-              <NavLink to="/history">All Players History</NavLink>
-              {user.isAdmin && <NavLink to="/admin">Admin</NavLink>}
-              {user.isAdmin && <span className="admin-badge">ADMIN</span>}
-              <span>Welcome, {user.first_name || user.username}!</span>
-              <button className="logout-btn" onClick={logout}>Logout</button>
-            </div>
-          </div>
-        </nav>
+        <NavBar user={user} logout={logout} />
 
         <div className="container">
           <ErrorBoundary>

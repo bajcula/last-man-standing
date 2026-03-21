@@ -120,6 +120,9 @@ button:disabled {
   padding: 0;
   box-shadow: var(--shadow-md);
   margin-bottom: 30px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .nav-content {
@@ -132,9 +135,50 @@ button:disabled {
   min-height: 56px;
 }
 
+.nav-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: auto;
+}
+
 .nav h2 {
   color: white;
   font-size: 20px;
+}
+
+/* Hamburger button - hidden on desktop */
+.hamburger {
+  display: none;
+  background: none;
+  border: none;
+  padding: 8px;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+}
+
+.hamburger__line {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: white;
+  border-radius: 2px;
+  transition: transform 0.3s, opacity 0.3s;
+}
+
+.hamburger__line--open:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.hamburger__line--open:nth-child(2) {
+  opacity: 0;
+}
+.hamburger__line--open:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
 }
 
 .nav-links {
@@ -158,6 +202,16 @@ button:disabled {
 }
 
 .nav-links span {
+  color: rgba(255,255,255,0.7);
+}
+
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-welcome {
   color: rgba(255,255,255,0.7);
 }
 
@@ -436,11 +490,13 @@ button:disabled {
 
 /* ===== PHASE 2: Football Identity ===== */
 
-/* Nav active link indicator */
-.nav-links a.active,
-.nav-links a[aria-current="page"] {
-  color: white;
-  border-bottom-color: var(--color-secondary);
+/* Nav active link indicator — desktop */
+@media (min-width: 769px) {
+  .nav-links a.active,
+  .nav-links a[aria-current="page"] {
+    color: white;
+    border-bottom-color: var(--color-secondary);
+  }
 }
 
 /* Team card improvements */
@@ -553,125 +609,272 @@ button:disabled {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Better mobile responsive */
+/* ===== MOBILE RESPONSIVE ===== */
+
 @media (max-width: 768px) {
+  /* Hamburger menu */
+  .hamburger {
+    display: flex;
+  }
+
   .nav-content {
     flex-direction: column;
-    padding: 10px 12px;
-    gap: 6px;
+    padding: 0;
+    align-items: stretch;
   }
-  .nav-links {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 6px 14px;
+
+  .nav-header {
+    padding: 10px 16px;
+    width: 100%;
   }
-  .nav-links a {
-    padding: 6px 0;
-    font-size: 13px;
-  }
+
   .nav h2 {
-    font-size: 16px;
+    font-size: 17px;
   }
-  .container {
+
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    gap: 0;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    padding: 0;
+  }
+
+  .nav-links--open {
+    display: flex;
+  }
+
+  .nav-links a {
+    padding: 14px 20px;
+    font-size: 15px;
+    border-bottom: none;
+    border-left: 3px solid transparent;
+    text-align: left;
+  }
+
+  .nav-links a:hover,
+  .nav-links a.active,
+  .nav-links a[aria-current="page"] {
+    background: rgba(255,255,255,0.1);
+    border-left-color: var(--color-secondary);
+    border-bottom-color: transparent;
+    color: white;
+  }
+
+  .nav-user {
+    padding: 12px 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .logout-btn {
+    width: 100%;
     padding: 10px;
+    font-size: 14px;
+    text-align: center;
   }
+
+  /* Container */
+  .container {
+    padding: 12px;
+  }
+
+  /* Cards */
   .card {
-    padding: 14px;
+    padding: 16px;
+    border-radius: 8px;
   }
+
+  .card h2 {
+    font-size: 20px;
+  }
+
+  /* Team grid */
   .teams-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: 8px;
   }
+
   .team-card {
-    padding: 10px;
+    padding: 12px 8px;
+    min-height: 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
   }
+
   .team-card h3 {
     font-size: 14px;
+    letter-spacing: 1px;
   }
+
+  /* Matches */
   .matches-grid {
     grid-template-columns: 1fr;
     max-height: none;
   }
+
   .match-card__score {
     font-size: 18px;
   }
+
   .match-card__home,
   .match-card__away {
     font-size: 14px;
   }
+
   .match-card__home.match-card__team--bold,
   .match-card__away.match-card__team--bold {
     font-size: 14px;
   }
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-  .admin-tabs {
-    flex-wrap: wrap;
-  }
-  .admin-tab {
-    padding: 8px 12px;
-    font-size: 12px;
-  }
-  .picks-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 12px;
-  }
-  .pick-card {
-    min-height: 140px;
-    padding: 12px;
-  }
-  .history-table {
-    font-size: 12px;
-  }
-  .history-table th,
-  .history-table td {
-    padding: 6px 8px;
-  }
+
+  /* Deadline */
   .deadline-bar__header {
     flex-direction: column;
     gap: 4px;
   }
+
   .deadline-bar__time {
+    font-size: 13px;
+  }
+
+  /* Picks grid */
+  .picks-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .pick-card {
+    min-height: 130px;
+    padding: 12px;
+  }
+
+  .pick-card__week {
+    font-size: 14px;
+  }
+
+  .pick-card__short-name {
+    font-size: 16px;
+  }
+
+  /* History table */
+  .history-table-container {
+    margin: 0 -16px;
+    padding: 0 0;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .history-table {
+    font-size: 13px;
+  }
+
+  .history-table th,
+  .history-table td {
+    padding: 8px 10px;
+  }
+
+  .history-table .sticky-col {
+    min-width: 100px;
     font-size: 12px;
+    box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+  }
+
+  /* Forms */
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Admin */
+  .admin-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    gap: 0;
+  }
+
+  .admin-tab {
+    padding: 10px 14px;
+    font-size: 13px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Submit button */
+  .submit-btn {
+    padding: 14px 24px !important;
+    font-size: 16px !important;
+  }
+
+  /* Auth container */
+  .auth-container {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    max-width: none;
+    margin: 16px;
+    margin-top: 15vh;
+    padding: 24px;
+    border-radius: 12px;
+  }
+
+  .auth-container h2 {
+    font-size: 20px;
+  }
+
+  /* Elimination */
+  .elimination {
+    padding: 20px 10px;
+  }
+
+  .elimination__title {
+    font-size: 20px;
   }
 }
 
-@media (max-width: 480px) {
-  .nav-content {
-    padding: 8px 10px;
-    gap: 4px;
-  }
-  .nav h2 {
-    font-size: 14px;
-  }
-  .nav-links {
-    gap: 4px 10px;
-  }
-  .nav-links a {
-    font-size: 12px;
-  }
-  .nav-links span {
-    font-size: 11px;
-  }
+@media (max-width: 380px) {
   .teams-grid {
     grid-template-columns: repeat(3, 1fr);
     gap: 6px;
   }
+
   .team-card {
-    padding: 8px;
+    padding: 10px 6px;
   }
+
   .team-card h3 {
     font-size: 13px;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
   }
+
+  .picks-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
   .card h2 {
     font-size: 18px;
   }
+
   .matches-section h4 {
     font-size: 14px;
   }
+
   .match-card {
+    padding: 10px;
+  }
+
+  .nav-header {
+    padding: 8px 12px;
+  }
+
+  .nav h2 {
+    font-size: 15px;
+  }
+
+  .container {
     padding: 10px;
   }
 }
