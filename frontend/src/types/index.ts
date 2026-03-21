@@ -79,12 +79,6 @@ export interface EliminationResult {
   eliminationInfo: EliminationInfo | null;
 }
 
-export interface AffectedPick {
-  userName: string;
-  teamName: string;
-  teamShort: string;
-}
-
 export interface DeadlineStatus {
   status: 'no-deadline' | 'closed' | 'passed' | 'urgent' | 'soon' | 'open';
   message: string;
@@ -99,16 +93,6 @@ export interface UserManagementProps {
   message: string;
   setMessage: (msg: string) => void;
   onUserCreated: () => void;
-}
-
-export interface WinnersMarkingProps {
-  teams: Team[];
-  selectedWeek: number;
-  onWeekChange: (week: number) => void;
-  loading: boolean;
-  setLoading: (loading: boolean) => void;
-  message: string;
-  setMessage: (msg: string) => void;
 }
 
 export interface GameResetProps {
