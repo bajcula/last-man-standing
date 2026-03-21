@@ -247,7 +247,17 @@ function PickTeam() {
     };
   };
 
-  if (loading) return <div className="card">Loading...</div>;
+  if (loading) return (
+    <div className="card">
+      <div className="skeleton skeleton-row skeleton-row--medium"></div>
+      <div className="skeleton skeleton-card"></div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', marginTop: '20px' }}>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="skeleton" style={{ height: '60px' }}></div>
+        ))}
+      </div>
+    </div>
+  );
 
   if (isEliminated && eliminationInfo) {
     return (

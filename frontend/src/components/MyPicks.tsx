@@ -36,7 +36,16 @@ function MyPicks() {
     }
   };
 
-  if (loading) return <div className="card">Loading...</div>;
+  if (loading) return (
+    <div className="card">
+      <div className="skeleton skeleton-row skeleton-row--short"></div>
+      <div className="picks-grid">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="skeleton" style={{ height: '180px' }}></div>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="card">
