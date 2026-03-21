@@ -231,7 +231,13 @@ function AllPlayersPicksHistory() {
     }
   };
 
-  if (loading) return <div className="card">Loading historical data...</div>;
+  if (loading) return (
+    <div className="card">
+      <div className="skeleton skeleton-row skeleton-row--medium"></div>
+      <div className="skeleton skeleton-row"></div>
+      <div className="skeleton skeleton-card"></div>
+    </div>
+  );
 
   const weeks = Array.from({ length: maxWeek }, (_, i) => i + 1);
   const availableWeeks = weeks.filter(week => picksData[week]);

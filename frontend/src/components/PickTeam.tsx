@@ -247,38 +247,39 @@ function PickTeam() {
     };
   };
 
-  if (loading) return <div className="card">Loading...</div>;
+  if (loading) return (
+    <div className="card">
+      <div className="skeleton skeleton-row skeleton-row--medium"></div>
+      <div className="skeleton skeleton-card"></div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', marginTop: '20px' }}>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="skeleton" style={{ height: '60px' }}></div>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (!loading && error && teams.length === 0) {
+    return (
+      <div className="card" style={{ textAlign: 'center', padding: '40px 20px' }}>
+        <h2 style={{ color: 'var(--color-danger)', marginBottom: '15px' }}>Failed to load game data</h2>
+        <p style={{ color: 'var(--color-text-muted)', marginBottom: '20px' }}>{error}</p>
+        <button onClick={() => { setError(''); setLoading(true); loadData(); }} style={{ width: 'auto', padding: '12px 30px' }}>
+          Try Again
+        </button>
+      </div>
+    );
+  }
 
   if (isEliminated && eliminationInfo) {
     return (
       <div className="card">
         <div className="elimination">
-          <h2 className="elimination__title">🚫 Eliminated in Week {eliminationInfo.week}</h2>
-
-          <div className="elimination__box elimination__box--danger">
-            <h4 style={{ color: '#721c24', marginBottom: '15px' }}>Your Journey Ends Here</h4>
-            <p><strong>Week {eliminationInfo.week}:</strong> Your team {eliminationInfo.teamName} did not win their match</p>
-            <p>Unfortunately, this means you're out of the Last Man Standing competition.</p>
-          </div>
-
-          <div className="elimination__box elimination__box--info">
-            <h4 style={{ color: '#0c5460', marginBottom: '15px' }}>🎯 What You Can Still Do</h4>
-            <div style={{ textAlign: 'left', display: 'inline-block' }}>
-              <p>✅ View other players' picks and results</p>
-              <p>✅ Follow the remaining competition</p>
-              <p>✅ See who becomes the Last Man Standing</p>
-            </div>
-          </div>
-
-          <div className="elimination__box elimination__box--success">
-            <h4 style={{ color: '#155724', marginBottom: '15px' }}>🔥 Better Luck Next Season!</h4>
-            <p style={{ fontSize: '16px', marginBottom: '15px' }}>
-              Every great player has been eliminated at some point. Use this experience to come back stronger!
-            </p>
-            <p style={{ fontSize: '14px', color: '#666' }}>
-              The next Last Man Standing competition will be even more exciting ⚽
-            </p>
-          </div>
+          <h2 className="elimination__title">Eliminated in Week {eliminationInfo.week}</h2>
+          <p className="elimination__summary">
+            Your team <strong>{eliminationInfo.teamName}</strong> did not win in Week {eliminationInfo.week}, so you're out of the competition.
+            You can still view other players' picks and follow the remaining games. Better luck next time!
+          </p>
         </div>
       </div>
     );
