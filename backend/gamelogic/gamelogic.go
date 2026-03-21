@@ -1,5 +1,7 @@
 package gamelogic
 
+import "sort"
+
 // Pick represents a user's team pick for a week.
 type Pick struct {
 	TeamID     string
@@ -74,4 +76,27 @@ func IsUserEliminated(userPicks []Pick, allWinners []Winner, currentWeek int) bo
 		}
 	}
 	return false
+}
+
+// GetFirstAvailableTeam returns the first team (alphabetically by TeamName)
+// that is not in the usedTeamIDs set, or nil if all teams are used.
+func GetFirstAvailableTeam(usedTeamIDs []string, allTeams []Team) *Team {
+	if len(allTeams) == 0 {
+		return nil
+	}
+	sorted := make([]Team, len(allTeams))
+	copy(sorted, allTeams)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].TeamName < sorted[j].TeamName
+	})
+	usedSet := make(map[string]bool, len(usedTeamIDs))
+	for _, id := range usedTeamIDs {
+		usedSet[id] = true
+	}
+	for i := range sorted {
+		if !usedSet[sorted[i].ID] {
+			return &sorted[i]
+		}
+	}
+	return nil
 }

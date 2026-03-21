@@ -60,3 +60,42 @@ func TestIsUserEliminated(t *testing.T) {
 		})
 	}
 }
+
+func TestGetFirstAvailableTeam(t *testing.T) {
+	teams := []Team{
+		{ID: "1", TeamName: "Chelsea", ShortName: "CHE"},
+		{ID: "2", TeamName: "Aston Villa", ShortName: "AVL"},
+		{ID: "3", TeamName: "Brighton and Hove Albion", ShortName: "BHA"},
+		{ID: "4", TeamName: "Arsenal", ShortName: "ARS"},
+	}
+	tests := []struct {
+		name    string
+		usedIDs []string
+		teams   []Team
+		wantID  string
+		wantNil bool
+	}{
+		{"no picks — returns Arsenal (first alpha)", []string{}, teams, "4", false},
+		{"Arsenal used — returns Aston Villa", []string{"4"}, teams, "2", false},
+		{"Arsenal+Villa used — returns Brighton", []string{"4", "2"}, teams, "3", false},
+		{"all used — returns nil", []string{"1", "2", "3", "4"}, teams, "", true},
+		{"empty teams — returns nil", []string{}, []Team{}, "", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := GetFirstAvailableTeam(tt.usedIDs, tt.teams)
+			if tt.wantNil {
+				if got != nil {
+					t.Errorf("GetFirstAvailableTeam() = %v, want nil", got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatal("GetFirstAvailableTeam() = nil, want non-nil")
+			}
+			if got.ID != tt.wantID {
+				t.Errorf("GetFirstAvailableTeam().ID = %q, want %q", got.ID, tt.wantID)
+			}
+		})
+	}
+}
