@@ -259,6 +259,18 @@ function PickTeam() {
     </div>
   );
 
+  if (!loading && error && teams.length === 0) {
+    return (
+      <div className="card" style={{ textAlign: 'center', padding: '40px 20px' }}>
+        <h2 style={{ color: 'var(--color-danger)', marginBottom: '15px' }}>Failed to load game data</h2>
+        <p style={{ color: 'var(--color-text-muted)', marginBottom: '20px' }}>{error}</p>
+        <button onClick={() => { setError(''); setLoading(true); loadData(); }} style={{ width: 'auto', padding: '12px 30px' }}>
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
   if (isEliminated && eliminationInfo) {
     return (
       <div className="card">
