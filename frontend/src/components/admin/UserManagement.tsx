@@ -73,6 +73,7 @@ function UserManagement({ users, loading, setMessage, onUserCreated }: UserManag
                 type="email"
                 value={newUser.email}
                 onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                autoComplete="off"
                 required
               />
             </div>
@@ -82,6 +83,7 @@ function UserManagement({ users, loading, setMessage, onUserCreated }: UserManag
                 type="password"
                 value={newUser.password}
                 onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                autoComplete="new-password"
                 required
               />
             </div>
