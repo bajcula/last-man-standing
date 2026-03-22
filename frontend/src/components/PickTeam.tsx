@@ -317,11 +317,6 @@ function PickTeam() {
         const isMoved = (m: DisplayMatch): boolean => {
           if (m.postponed === 'yes') return true;
           if (isPostponedStatus(m.status)) return true;
-          if (m.status === 'Match Finished') {
-            const now = new Date();
-            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-            return m.date < todayStr;
-          }
           return false;
         };
         const upcomingMatches = weekMatches.filter(m => !isMoved(m));
@@ -383,10 +378,7 @@ function PickTeam() {
       {(() => {
         const unavailableTeamIds = new Set<string>();
         for (const match of weekMatches) {
-          const now = new Date();
-          const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-          const moved = match.postponed === 'yes' || isPostponedStatus(match.status) ||
-            (match.status === 'Match Finished' && match.date < todayStr);
+          const moved = match.postponed === 'yes' || isPostponedStatus(match.status);
           if (moved) {
             const homeTeam = findTeamByApiName(match.homeTeam, teams);
             const awayTeam = findTeamByApiName(match.awayTeam, teams);
