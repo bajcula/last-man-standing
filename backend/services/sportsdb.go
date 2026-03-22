@@ -90,7 +90,12 @@ func FindTeamByApiName(apiName string, teams []Team) *Team {
 	return nil
 }
 
+// FetchRoundMatches is a package-level convenience wrapper.
 func FetchRoundMatches(season string, round int) ([]APIMatch, error) {
+	return fetchRoundMatchesFromAPI(season, round)
+}
+
+func fetchRoundMatchesFromAPI(season string, round int) ([]APIMatch, error) {
 	url := fmt.Sprintf("%s/eventsround.php?id=%s&r=%d&s=%s", APIBase, LeagueID, round, season)
 	client := &http.Client{Timeout: APITimeout}
 	resp, err := client.Get(url)
