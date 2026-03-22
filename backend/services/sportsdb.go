@@ -90,7 +90,7 @@ func FindTeamByApiName(apiName string, teams []Team) *Team {
 	return nil
 }
 
-func FetchRoundMatches(season string, round int) ([]APIMatch, error) {
+func fetchRoundMatchesFromAPI(season string, round int) ([]APIMatch, error) {
 	url := fmt.Sprintf("%s/eventsround.php?id=%s&r=%d&s=%s", APIBase, LeagueID, round, season)
 	client := &http.Client{Timeout: APITimeout}
 	resp, err := client.Get(url)
