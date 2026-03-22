@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/bajcula/last-man-standing/backend/hooks"
+	"github.com/bajcula/last-man-standing/backend/services"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 
@@ -20,7 +21,25 @@ func main() {
 		Automigrate: isGoRun,
 	})
 
-	hooks.RegisterGameweekCron(app)
+	var fetcher services.MatchFetcher
+	if scenario := os.Getenv("MOCK_API"); scenario != "" {
+		valid := false
+		for _, s := range services.ListScenarios() {
+			if s == scenario {
+				valid = true
+				break
+			}
+		}
+		if !valid {
+			log.Fatalf("[MOCK] Unknown scenario %q. Available: %v", scenario, services.ListScenarios())
+		}
+		log.Printf("[MOCK] Using mock API with scenario: %s", scenario)
+		fetcher = services.NewMockFetcher(scenario)
+	} else {
+		fetcher = services.LiveFetcher{}
+	}
+
+	hooks.RegisterGameweekCron(app, fetcher)
 	hooks.RegisterPicksGuard(app)
 
 	if err := app.Start(); err != nil {

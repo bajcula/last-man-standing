@@ -10,13 +10,13 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-func RegisterGameweekCron(app core.App) {
+func RegisterGameweekCron(app core.App, fetcher services.MatchFetcher) {
 	app.Cron().MustAdd("gameweek-automation", "*/30 * * * *", func() {
-		runGameweekAutomation(app)
+		runGameweekAutomation(app, fetcher)
 	})
 }
 
-func runGameweekAutomation(app core.App) {
+func runGameweekAutomation(app core.App, fetcher services.MatchFetcher) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[AUTOMATION] Panic recovered: %v", r)
@@ -34,7 +34,7 @@ func runGameweekAutomation(app core.App) {
 
 	if !hasDeadlines {
 		log.Printf("[AUTOMATION] First run - initializing at week %d", services.StartWeek)
-		createDeadline(app, services.StartWeek, season)
+		createDeadline(app, services.StartWeek, season, fetcher)
 		autoAssignPicks(app, services.StartWeek)
 		log.Println("[AUTOMATION] Initial setup complete")
 		return
@@ -45,11 +45,11 @@ func runGameweekAutomation(app core.App) {
 
 	if weekAlreadyProcessed(app, currentWeek) {
 		log.Printf("[AUTOMATION] Week %d done. Ensuring next week ready.", currentWeek)
-		ensureNextWeekReady(app, currentWeek, season)
+		ensureNextWeekReady(app, currentWeek, season, fetcher)
 		return
 	}
 
-	matches, err := services.FetchRoundMatches(season, currentWeek)
+	matches, err := fetcher.FetchRoundMatches(season, currentWeek)
 	if err != nil {
 		log.Printf("[AUTOMATION] Fetch failed: %v", err)
 		return
@@ -76,7 +76,7 @@ func runGameweekAutomation(app core.App) {
 	if allResolved {
 		log.Printf("[AUTOMATION] All matches resolved (%d finished, %d skipped). Processing week %d", doneCount, skippedCount, currentWeek)
 		markWinners(app, currentWeek, matches)
-		ensureNextWeekReady(app, currentWeek, season)
+		ensureNextWeekReady(app, currentWeek, season, fetcher)
 		return
 	}
 
@@ -158,7 +158,7 @@ func markWinners(app core.App, weekNumber int, matches []services.APIMatch) {
 	log.Printf("[AUTOMATION] Marked %d winners for week %d", count, weekNumber)
 }
 
-func createDeadline(app core.App, weekNumber int, season string) {
+func createDeadline(app core.App, weekNumber int, season string, fetcher services.MatchFetcher) {
 	existing, _ := app.FindRecordsByFilter("deadlines", "week_number = "+strconv.Itoa(weekNumber), "", 1, 0)
 	if len(existing) > 0 {
 		log.Printf("[AUTOMATION] Deadline for week %d already exists, skipping.", weekNumber)
@@ -166,7 +166,7 @@ func createDeadline(app core.App, weekNumber int, season string) {
 	}
 	now := time.Now().UTC()
 	var deadlineTime time.Time
-	matches, err := services.FetchRoundMatches(season, weekNumber)
+	matches, err := fetcher.FetchRoundMatches(season, weekNumber)
 	if err != nil {
 		log.Printf("[AUTOMATION] Could not fetch week %d for deadline: %v", weekNumber, err)
 	}
@@ -276,11 +276,11 @@ func autoAssignPicks(app core.App, weekNumber int) {
 	log.Printf("[AUTOMATION] Auto-assigned %d picks for week %d", count, weekNumber)
 }
 
-func ensureNextWeekReady(app core.App, currentWeek int, season string) {
+func ensureNextWeekReady(app core.App, currentWeek int, season string, fetcher services.MatchFetcher) {
 	nextWeek := currentWeek + 1
 	existing, _ := app.FindRecordsByFilter("deadlines", "week_number = "+strconv.Itoa(nextWeek), "", 1, 0)
 	if len(existing) == 0 {
-		createDeadline(app, nextWeek, season)
+		createDeadline(app, nextWeek, season, fetcher)
 	}
 	autoAssignPicks(app, nextWeek)
 }
