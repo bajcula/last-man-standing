@@ -8,8 +8,7 @@ type MatchFetcher interface {
 // Compile-time interface compliance checks.
 var _ MatchFetcher = LiveFetcher{}
 
-// TODO: uncomment after MockFetcher is created
-// var _ MatchFetcher = (*MockFetcher)(nil)
+var _ MatchFetcher = (*MockFetcher)(nil)
 
 // LiveFetcher calls the real TheSportsDB API.
 type LiveFetcher struct{}
