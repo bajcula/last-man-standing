@@ -33,6 +33,23 @@ cd backend && go test ./...        # 53 Go tests
 cd frontend && npm test            # 16 frontend tests
 ```
 
+## Mock API for Local Development
+
+Set `MOCK_API` env var to a scenario name to use canned match data instead of hitting TheSportsDB:
+
+```bash
+cd backend && MOCK_API=all-finished go run . serve
+```
+
+Available scenarios:
+- `all-finished` — all 10 matches finished with clear winners
+- `pre-kickoff` — all matches not started, deadline tomorrow
+- `mid-week` — 5 finished, 5 not started
+- `all-draws` — all matches end 1-1 (no winners)
+- `with-postponed` — 8 finished, 2 postponed
+
+Without `MOCK_API`, the app calls the real TheSportsDB API as normal.
+
 ## Deploy
 
 Push to `main` auto-deploys both: Vercel (frontend) + Railway (backend via `backend/Dockerfile`).
