@@ -30,9 +30,17 @@ const fetchWithTimeout = async (url: string, timeoutMs = API_TIMEOUT_MS): Promis
 };
 
 /**
- * Fetch matches for a specific round from TheSportsDB
+ * Fetch matches for a specific round.
+ * In local dev (VITE_MOCK_API set), fetches from the backend mock.
+ * In production, fetches from TheSportsDB directly.
  */
 export const fetchRoundMatches = async (round: number): Promise<ApiMatch[]> => {
+  if (import.meta.env.VITE_MOCK_API) {
+    const pbUrl = import.meta.env.VITE_POCKETBASE_URL || 'http://localhost:8090';
+    const response = await fetchWithTimeout(`${pbUrl}/api/matches/${round}`);
+    const data = await response.json();
+    return (data.events || []) as ApiMatch[];
+  }
   const season = getCurrentSeason();
   const url = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=${LEAGUE_ID}&r=${round}&s=${season}`;
   const response = await fetchWithTimeout(url);
