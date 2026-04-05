@@ -1,14 +1,20 @@
 package services
 
 import (
-	"sort"
 	"testing"
 )
 
-func TestMockFetcher_AllFinished(t *testing.T) {
-	mock := NewMockFetcher("all-finished")
+func TestNewMockFetcher(t *testing.T) {
+	mock := NewMockFetcher(25)
+	if mock.CurrentWeek() != 25 {
+		t.Errorf("expected currentWeek 25, got %d", mock.CurrentWeek())
+	}
+}
 
-	matches, err := mock.FetchRoundMatches("2025-2026", 30)
+func TestMockFetcher_FetchNotStarted(t *testing.T) {
+	mock := NewMockFetcher(25)
+
+	matches, err := mock.FetchRoundMatches("2025-2026", 25)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -16,91 +22,122 @@ func TestMockFetcher_AllFinished(t *testing.T) {
 		t.Errorf("expected 10 matches, got %d", len(matches))
 	}
 	for _, m := range matches {
-		if m.Status != "Match Finished" {
-			t.Errorf("expected all Match Finished, got %q", m.Status)
-		}
-	}
-}
-
-func TestMockFetcher_PreKickoff(t *testing.T) {
-	mock := NewMockFetcher("pre-kickoff")
-
-	matches, err := mock.FetchRoundMatches("2025-2026", 30)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	for _, m := range matches {
 		if m.Status != "Not Started" {
-			t.Errorf("expected all Not Started, got %q", m.Status)
+			t.Errorf("expected Not Started, got %q", m.Status)
 		}
 	}
 }
 
-func TestMockFetcher_MidWeek(t *testing.T) {
-	mock := NewMockFetcher("mid-week")
+func TestMockFetcher_FetchPastWeek(t *testing.T) {
+	mock := NewMockFetcher(25)
 
-	matches, err := mock.FetchRoundMatches("2025-2026", 30)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	finished := 0
-	notStarted := 0
-	for _, m := range matches {
-		switch m.Status {
-		case "Match Finished":
-			finished++
-		case "Not Started":
-			notStarted++
-		}
-	}
-	if finished == 0 || notStarted == 0 {
-		t.Errorf("mid-week should have mix: %d finished, %d not started", finished, notStarted)
-	}
-}
-
-func TestMockFetcher_UnknownScenario(t *testing.T) {
-	mock := NewMockFetcher("nonexistent")
-
-	matches, err := mock.FetchRoundMatches("2025-2026", 30)
+	matches, err := mock.FetchRoundMatches("2025-2026", 24)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if len(matches) != 0 {
-		t.Errorf("unknown scenario should return empty, got %d", len(matches))
+		t.Errorf("past weeks should return empty, got %d", len(matches))
 	}
 }
 
-func TestMockFetcher_SetScenario(t *testing.T) {
-	mock := NewMockFetcher("pre-kickoff")
-	matches, _ := mock.FetchRoundMatches("2025-2026", 30)
+func TestMockFetcher_FetchFutureWeek(t *testing.T) {
+	mock := NewMockFetcher(25)
+
+	matches, err := mock.FetchRoundMatches("2025-2026", 26)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(matches) != 10 {
+		t.Errorf("expected 10 matches for future week, got %d", len(matches))
+	}
 	for _, m := range matches {
 		if m.Status != "Not Started" {
-			t.Fatalf("expected Not Started")
-		}
-	}
-
-	mock.SetScenario("all-finished")
-	matches, _ = mock.FetchRoundMatches("2025-2026", 30)
-	for _, m := range matches {
-		if m.Status != "Match Finished" {
-			t.Fatalf("expected Match Finished after switch, got %q", m.Status)
+			t.Errorf("expected Not Started for future week, got %q", m.Status)
 		}
 	}
 }
 
-func TestListScenarios(t *testing.T) {
-	names := ListScenarios()
-	if len(names) == 0 {
-		t.Fatal("expected at least one scenario")
+func TestMockFetcher_Advance(t *testing.T) {
+	mock := NewMockFetcher(25)
+
+	results := mock.Advance()
+	if len(results) != 10 {
+		t.Fatalf("expected 10 results, got %d", len(results))
 	}
-	sort.Strings(names)
-	expected := []string{"all-draws", "all-finished", "mid-week", "pre-kickoff", "with-postponed"}
-	if len(names) != len(expected) {
-		t.Fatalf("expected %d scenarios, got %d: %v", len(expected), len(names), names)
+	for _, m := range results {
+		if m.Status != "Match Finished" {
+			t.Errorf("expected Match Finished after advance, got %q", m.Status)
+		}
 	}
-	for i, name := range names {
-		if name != expected[i] {
-			t.Errorf("scenario[%d] = %q, want %q", i, name, expected[i])
+
+	if mock.CurrentWeek() != 26 {
+		t.Errorf("expected currentWeek 26 after advance, got %d", mock.CurrentWeek())
+	}
+
+	matches, _ := mock.FetchRoundMatches("2025-2026", 25)
+	for _, m := range matches {
+		if m.Status != "Match Finished" {
+			t.Errorf("week 25 should be finished after advance, got %q", m.Status)
+		}
+	}
+
+	matches, _ = mock.FetchRoundMatches("2025-2026", 26)
+	for _, m := range matches {
+		if m.Status != "Not Started" {
+			t.Errorf("week 26 should be Not Started, got %q", m.Status)
+		}
+	}
+}
+
+func TestMockFetcher_AdvanceMultiple(t *testing.T) {
+	mock := NewMockFetcher(25)
+
+	mock.Advance()
+	mock.Advance()
+	mock.Advance()
+
+	if mock.CurrentWeek() != 28 {
+		t.Errorf("expected currentWeek 28, got %d", mock.CurrentWeek())
+	}
+
+	for week := 25; week <= 27; week++ {
+		matches, _ := mock.FetchRoundMatches("2025-2026", week)
+		for _, m := range matches {
+			if m.Status != "Match Finished" {
+				t.Errorf("week %d should be finished, got %q", week, m.Status)
+			}
+		}
+	}
+}
+
+func TestMockFetcher_RandomResults(t *testing.T) {
+	mock := NewMockFetcher(25)
+	results := mock.Advance()
+
+	hasWinner := false
+	for _, m := range results {
+		hs := ParseScore(m.HomeScore)
+		as := ParseScore(m.AwayScore)
+		if hs != as {
+			hasWinner = true
+		}
+	}
+	if !hasWinner {
+		t.Error("expected at least one non-draw result")
+	}
+}
+
+func TestMockFetcher_Deterministic(t *testing.T) {
+	mock1 := NewMockFetcher(25)
+	mock2 := NewMockFetcher(25)
+
+	r1 := mock1.Advance()
+	r2 := mock2.Advance()
+
+	for i := range r1 {
+		if r1[i].HomeScore != r2[i].HomeScore || r1[i].AwayScore != r2[i].AwayScore {
+			t.Errorf("match %d: results differ between runs (%s-%s vs %s-%s)",
+				i, r1[i].HomeScore, r1[i].AwayScore, r2[i].HomeScore, r2[i].AwayScore)
 		}
 	}
 }
