@@ -29,10 +29,13 @@ func RegisterDevRoutes(app core.App, fetcher *services.MockFetcher) {
 		})
 
 		se.Router.POST("/api/dev/advance", func(e *core.RequestEvent) error {
+			// Ensure DB is bootstrapped (creates initial deadline + auto-picks on first call; no-op after)
+			RunGameweekAutomation(app, fetcher)
+
 			oldWeek := fetcher.CurrentWeek()
 			results := fetcher.Advance()
 
-			// Run the cron automation to process the finished week
+			// Process the finished week (mark winners, create next deadline, auto-assign picks)
 			RunGameweekAutomation(app, fetcher)
 
 			type matchResult struct {

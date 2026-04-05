@@ -15,8 +15,10 @@ const (
 	APIBase            = "https://www.thesportsdb.com/api/v1/json/3"
 	APITimeout         = 30 * time.Second
 	ResultsBufferHours = 5
-	StartWeek          = 30
 )
+
+// StartWeek is the default starting week. Overridden by MOCK_API in dev mode.
+var StartWeek = 30
 
 var SkipStatuses = map[string]bool{
 	"Postponed": true,
