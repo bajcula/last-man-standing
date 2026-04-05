@@ -12,11 +12,11 @@ import (
 
 func RegisterGameweekCron(app core.App, fetcher services.MatchFetcher) {
 	app.Cron().MustAdd("gameweek-automation", "*/30 * * * *", func() {
-		runGameweekAutomation(app, fetcher)
+		RunGameweekAutomation(app, fetcher)
 	})
 }
 
-func runGameweekAutomation(app core.App, fetcher services.MatchFetcher) {
+func RunGameweekAutomation(app core.App, fetcher services.MatchFetcher) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[AUTOMATION] Panic recovered: %v", r)

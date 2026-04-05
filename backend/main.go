@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/bajcula/last-man-standing/backend/hooks"
@@ -22,19 +23,16 @@ func main() {
 	})
 
 	var fetcher services.MatchFetcher
-	if scenario := os.Getenv("MOCK_API"); scenario != "" {
-		valid := false
-		for _, s := range services.ListScenarios() {
-			if s == scenario {
-				valid = true
-				break
-			}
+	if mockWeek := os.Getenv("MOCK_API"); mockWeek != "" {
+		week, err := strconv.Atoi(mockWeek)
+		if err != nil || week < 1 || week > 38 {
+			log.Fatalf("[MOCK] MOCK_API must be a week number 1-38, got %q", mockWeek)
 		}
-		if !valid {
-			log.Fatalf("[MOCK] Unknown scenario %q. Available: %v", scenario, services.ListScenarios())
-		}
-		log.Printf("[MOCK] Using mock API with scenario: %s", scenario)
-		fetcher = services.NewMockFetcher(scenario)
+		log.Printf("[MOCK] Starting simulation at week %d", week)
+		services.StartWeek = week
+		mockFetcher := services.NewMockFetcher(week)
+		fetcher = mockFetcher
+		hooks.RegisterDevRoutes(app, mockFetcher)
 	} else {
 		fetcher = services.LiveFetcher{}
 	}

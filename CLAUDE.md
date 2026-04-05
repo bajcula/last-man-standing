@@ -35,18 +35,27 @@ cd frontend && npm test            # 16 frontend tests
 
 ## Mock API for Local Development
 
-Set `MOCK_API` env var to a scenario name to use canned match data instead of hitting TheSportsDB:
+Set `MOCK_API` to a starting week number for end-to-end simulation:
 
 ```bash
-cd backend && MOCK_API=all-finished go run . serve
+cd backend && MOCK_API=25 go run . serve
 ```
 
-Available scenarios:
-- `all-finished` — all 10 matches finished with clear winners
-- `pre-kickoff` — all matches not started, deadline tomorrow
-- `mid-week` — 5 finished, 5 not started
-- `all-draws` — all matches end 1-1 (no winners)
-- `with-postponed` — 8 finished, 2 postponed
+This starts the app at week 25 with mock match data. The frontend (with `VITE_MOCK_API=true` in `.env`) fetches fixtures from the backend instead of TheSportsDB.
+
+### Simulation workflow
+
+1. Start backend: `MOCK_API=25 go run . serve`
+2. Start frontend: `cd frontend && npm run dev`
+3. Open the app, create users, make picks
+4. Advance the week: `curl -X POST http://localhost:8090/api/dev/advance`
+5. Refresh the UI — see results, next week ready
+6. Repeat steps 3-5
+
+### Dev endpoints (mock mode only)
+
+- `GET /api/matches/:round` — fixture data for a round
+- `POST /api/dev/advance` — finalize current week with random scores, run cron
 
 Without `MOCK_API`, the app calls the real TheSportsDB API as normal.
 

@@ -127,7 +127,7 @@ function AllPlayersPicksHistory() {
 
       const now = new Date();
       const currentWeekData = deadlines.find(d =>
-        new Date(d.deadline_time) > now
+        !d.is_closed && new Date(d.deadline_time) > now
       );
       if (currentWeekData) {
         setCurrentWeek(currentWeekData.week_number);
