@@ -29,7 +29,9 @@ func main() {
 			log.Fatalf("[MOCK] MOCK_API must be a week number 1-38, got %q", mockWeek)
 		}
 		log.Printf("[MOCK] Starting simulation at week %d", week)
-		fetcher = services.NewMockFetcher(week)
+		mockFetcher := services.NewMockFetcher(week)
+		fetcher = mockFetcher
+		hooks.RegisterDevRoutes(app, mockFetcher)
 	} else {
 		fetcher = services.LiveFetcher{}
 	}
