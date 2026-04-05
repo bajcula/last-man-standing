@@ -3,6 +3,7 @@ package hooks
 import (
 	"time"
 
+	"github.com/bajcula/last-man-standing/backend/gamelogic"
 	"github.com/pocketbase/pocketbase/core"
 )
 
@@ -85,6 +86,11 @@ func enforceDeadline(app core.App, e *core.RecordRequestEvent) error {
 		return nil
 	}
 
+	// Check elimination first — applies regardless of whether a deadline exists
+	if isEliminated(app, auth.Id, weekNum) {
+		return e.ForbiddenError("You have been eliminated", nil)
+	}
+
 	deadlines, err := app.FindRecordsByFilter(
 		"deadlines",
 		"week_number = {:week}",
@@ -106,4 +112,26 @@ func enforceDeadline(app core.App, e *core.RecordRequestEvent) error {
 	}
 
 	return nil
+}
+
+func isEliminated(app core.App, userID string, currentWeek int) bool {
+	userPicks, _ := app.FindRecordsByFilter("picks", "user_id = '"+userID+"'", "", 0, 0)
+	allWinners, _ := app.FindRecordsByFilter("winning_teams", "id != ''", "", 0, 0)
+
+	glPicks := make([]gamelogic.Pick, len(userPicks))
+	for i, p := range userPicks {
+		glPicks[i] = gamelogic.Pick{
+			TeamID:     p.GetString("team_id"),
+			WeekNumber: p.GetInt("week_number"),
+		}
+	}
+	glWinners := make([]gamelogic.Winner, len(allWinners))
+	for i, w := range allWinners {
+		glWinners[i] = gamelogic.Winner{
+			TeamID:     w.GetString("team_id"),
+			WeekNumber: w.GetInt("week_number"),
+		}
+	}
+
+	return gamelogic.IsUserEliminated(glPicks, glWinners, currentWeek)
 }

@@ -1,6 +1,7 @@
 package hooks
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -34,6 +35,9 @@ func RegisterDevRoutes(app core.App, fetcher *services.MockFetcher) {
 
 			oldWeek := fetcher.CurrentWeek()
 			results := fetcher.Advance()
+
+			// Close the deadline for the finished week so picks become visible
+			closeDeadline(app, oldWeek)
 
 			// Process the finished week (mark winners, create next deadline, auto-assign picks)
 			RunGameweekAutomation(app, fetcher)
@@ -72,4 +76,21 @@ func RegisterDevRoutes(app core.App, fetcher *services.MockFetcher) {
 
 		return se.Next()
 	})
+}
+
+func closeDeadline(app core.App, week int) {
+	deadlines, err := app.FindRecordsByFilter(
+		"deadlines",
+		"week_number = {:week}",
+		"", 1, 0,
+		map[string]any{"week": week},
+	)
+	if err != nil || len(deadlines) == 0 {
+		return
+	}
+	d := deadlines[0]
+	d.Set("is_closed", true)
+	if err := app.Save(d); err != nil {
+		log.Printf("[DEV] Failed to close deadline for week %d: %v", week, err)
+	}
 }
