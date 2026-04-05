@@ -411,9 +411,7 @@ function PickTeam() {
                   onKeyDown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!isDisabled) setSelectedTeam(team.id); }}}
                 >
                   <h3>{team.team_short_name}</h3>
-                  {wasAlreadyPicked && (
-                    <p className="already-picked">Already picked</p>
-                  )}
+                  <p className="already-picked" style={{ visibility: wasAlreadyPicked ? 'visible' : 'hidden' }}>Already picked</p>
                 </div>
               );
             })}
