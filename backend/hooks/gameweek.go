@@ -23,8 +23,25 @@ func RunGameweekAutomation(app core.App, fetcher services.MatchFetcher) {
 		}
 	}()
 
+	competitions, err := app.FindRecordsByFilter("competitions", "status = 'active'", "", 0, 0)
+	if err != nil || len(competitions) == 0 {
+		log.Println("[AUTOMATION] No active competitions found")
+		return
+	}
+
+	for _, comp := range competitions {
+		runCompetitionAutomation(app, fetcher, comp.Id, comp.GetInt("start_week"))
+	}
+}
+
+func runCompetitionAutomation(app core.App, fetcher services.MatchFetcher, competitionID string, startWeek int) {
 	hasDeadlines := false
-	existing, _ := app.FindRecordsByFilter("deadlines", "id != ''", "", 1, 0)
+	existing, _ := app.FindRecordsByFilter(
+		"deadlines",
+		"competition_id = {:compID}",
+		"", 1, 0,
+		map[string]any{"compID": competitionID},
+	)
 	if len(existing) > 0 {
 		hasDeadlines = true
 	}
@@ -33,29 +50,29 @@ func RunGameweekAutomation(app core.App, fetcher services.MatchFetcher) {
 	season := gamelogic.GetCurrentSeason(now)
 
 	if !hasDeadlines {
-		log.Printf("[AUTOMATION] First run - initializing at week %d", services.StartWeek)
-		createDeadline(app, services.StartWeek, season, fetcher)
-		autoAssignPicks(app, services.StartWeek)
-		log.Println("[AUTOMATION] Initial setup complete")
+		log.Printf("[AUTOMATION] Competition %s: first run - initializing at week %d", competitionID, startWeek)
+		createDeadline(app, startWeek, season, fetcher, competitionID)
+		autoAssignPicks(app, startWeek, competitionID)
+		log.Printf("[AUTOMATION] Competition %s: initial setup complete", competitionID)
 		return
 	}
 
-	currentWeek := getCurrentWeek(app)
-	log.Printf("[AUTOMATION] Cron tick - week %d", currentWeek)
+	currentWeek := getCurrentWeek(app, competitionID, startWeek)
+	log.Printf("[AUTOMATION] Competition %s: tick - week %d", competitionID, currentWeek)
 
-	if weekAlreadyProcessed(app, currentWeek) {
-		log.Printf("[AUTOMATION] Week %d done. Ensuring next week ready.", currentWeek)
-		ensureNextWeekReady(app, currentWeek, season, fetcher)
+	if weekAlreadyProcessed(app, currentWeek, competitionID) {
+		log.Printf("[AUTOMATION] Competition %s: week %d done. Ensuring next week ready.", competitionID, currentWeek)
+		ensureNextWeekReady(app, currentWeek, season, fetcher, competitionID)
 		return
 	}
 
 	matches, err := fetcher.FetchRoundMatches(season, currentWeek)
 	if err != nil {
-		log.Printf("[AUTOMATION] Fetch failed: %v", err)
+		log.Printf("[AUTOMATION] Competition %s: fetch failed: %v", competitionID, err)
 		return
 	}
 	if len(matches) == 0 {
-		log.Printf("[AUTOMATION] No matches for week %d", currentWeek)
+		log.Printf("[AUTOMATION] Competition %s: no matches for week %d", competitionID, currentWeek)
 		return
 	}
 
@@ -67,45 +84,54 @@ func RunGameweekAutomation(app core.App, fetcher services.MatchFetcher) {
 			doneCount++
 		} else if services.IsSkippedStatus(m.Status) {
 			skippedCount++
-			log.Printf("[AUTOMATION] Skipping %s match: %s vs %s", m.Status, m.HomeTeam, m.AwayTeam)
 		} else {
 			allResolved = false
 		}
 	}
 
 	if allResolved {
-		log.Printf("[AUTOMATION] All matches resolved (%d finished, %d skipped). Processing week %d", doneCount, skippedCount, currentWeek)
-		markWinners(app, currentWeek, matches)
-		ensureNextWeekReady(app, currentWeek, season, fetcher)
+		log.Printf("[AUTOMATION] Competition %s: all resolved (%d finished, %d skipped). Processing week %d", competitionID, doneCount, skippedCount, currentWeek)
+		markWinners(app, currentWeek, matches, competitionID)
+		ensureNextWeekReady(app, currentWeek, season, fetcher, competitionID)
 		return
 	}
 
 	active, reason := services.GetPollingWindow(matches, now)
 	if !active {
-		log.Printf("[AUTOMATION] Skipping - %s (%d/%d finished, %d skipped)", reason, doneCount, len(matches), skippedCount)
+		log.Printf("[AUTOMATION] Competition %s: skipping - %s", competitionID, reason)
 		return
 	}
 
-	log.Printf("[AUTOMATION] %d/%d finished, %d skipped. Waiting.", doneCount, len(matches), skippedCount)
+	log.Printf("[AUTOMATION] Competition %s: %d/%d finished, %d skipped. Waiting.", competitionID, doneCount, len(matches), skippedCount)
 }
 
-func getCurrentWeek(app core.App) int {
-	records, err := app.FindRecordsByFilter("deadlines", "id != ''", "-week_number", 1, 0)
+func getCurrentWeek(app core.App, competitionID string, startWeek int) int {
+	records, err := app.FindRecordsByFilter(
+		"deadlines",
+		"competition_id = {:compID}",
+		"-week_number", 1, 0,
+		map[string]any{"compID": competitionID},
+	)
 	if err != nil || len(records) == 0 {
-		return services.StartWeek
+		return startWeek
 	}
 	return records[0].GetInt("week_number")
 }
 
-func weekAlreadyProcessed(app core.App, week int) bool {
-	records, err := app.FindRecordsByFilter("winning_teams", "week_number = "+strconv.Itoa(week), "", 1, 0)
+func weekAlreadyProcessed(app core.App, week int, competitionID string) bool {
+	records, err := app.FindRecordsByFilter(
+		"winning_teams",
+		"week_number = {:week} && competition_id = {:compID}",
+		"", 1, 0,
+		map[string]any{"week": week, "compID": competitionID},
+	)
 	if err != nil {
 		return false
 	}
 	return len(records) > 0
 }
 
-func markWinners(app core.App, weekNumber int, matches []services.APIMatch) {
+func markWinners(app core.App, weekNumber int, matches []services.APIMatch, competitionID string) {
 	allTeams, err := app.FindRecordsByFilter("teams", "id != ''", "", 0, 0)
 	if err != nil {
 		log.Printf("[AUTOMATION] Failed to load teams: %v", err)
@@ -140,8 +166,9 @@ func markWinners(app core.App, weekNumber int, matches []services.APIMatch) {
 		}
 		existing, _ := app.FindRecordsByFilter(
 			"winning_teams",
-			"week_number = "+strconv.Itoa(weekNumber)+" && team_id = '"+dbTeam.ID+"'",
+			"week_number = {:week} && team_id = {:teamID} && competition_id = {:compID}",
 			"", 1, 0,
+			map[string]any{"week": weekNumber, "teamID": dbTeam.ID, "compID": competitionID},
 		)
 		if len(existing) > 0 {
 			continue
@@ -149,19 +176,25 @@ func markWinners(app core.App, weekNumber int, matches []services.APIMatch) {
 		record := core.NewRecord(col)
 		record.Set("week_number", weekNumber)
 		record.Set("team_id", dbTeam.ID)
+		record.Set("competition_id", competitionID)
 		if err := app.Save(record); err != nil {
 			log.Printf("[AUTOMATION] Failed to save winner: %v", err)
 			continue
 		}
 		count++
 	}
-	log.Printf("[AUTOMATION] Marked %d winners for week %d", count, weekNumber)
+	log.Printf("[AUTOMATION] Marked %d winners for week %d (competition %s)", count, weekNumber, competitionID)
 }
 
-func createDeadline(app core.App, weekNumber int, season string, fetcher services.MatchFetcher) {
-	existing, _ := app.FindRecordsByFilter("deadlines", "week_number = "+strconv.Itoa(weekNumber), "", 1, 0)
+func createDeadline(app core.App, weekNumber int, season string, fetcher services.MatchFetcher, competitionID string) {
+	existing, _ := app.FindRecordsByFilter(
+		"deadlines",
+		"week_number = {:week} && competition_id = {:compID}",
+		"", 1, 0,
+		map[string]any{"week": weekNumber, "compID": competitionID},
+	)
 	if len(existing) > 0 {
-		log.Printf("[AUTOMATION] Deadline for week %d already exists, skipping.", weekNumber)
+		log.Printf("[AUTOMATION] Deadline for week %d (competition %s) already exists, skipping.", weekNumber, competitionID)
 		return
 	}
 	now := time.Now().UTC()
@@ -194,25 +227,40 @@ func createDeadline(app core.App, weekNumber int, season string, fetcher service
 	record.Set("week_number", weekNumber)
 	record.Set("deadline_time", deadlineTime.UTC().Format(time.RFC3339))
 	record.Set("is_closed", false)
+	record.Set("competition_id", competitionID)
 	if err := app.Save(record); err != nil {
 		log.Printf("[AUTOMATION] Failed to save deadline: %v", err)
 		return
 	}
-	log.Printf("[AUTOMATION] Created deadline for week %d: %s", weekNumber, deadlineTime.UTC().Format(time.RFC3339))
+	log.Printf("[AUTOMATION] Created deadline for week %d (competition %s): %s", weekNumber, competitionID, deadlineTime.UTC().Format(time.RFC3339))
 }
 
-func autoAssignPicks(app core.App, weekNumber int) {
+func autoAssignPicks(app core.App, weekNumber int, competitionID string) {
 	allTeams, err := app.FindRecordsByFilter("teams", "id != ''", "team_name", 0, 0)
 	if err != nil {
 		log.Printf("[AUTOMATION] Failed to load teams: %v", err)
 		return
 	}
-	allUsers, err := app.FindRecordsByFilter("users", "id != ''", "", 0, 0)
+
+	// Load only participants for this competition
+	participantRecords, err := app.FindRecordsByFilter(
+		"competition_participants",
+		"competition_id = {:compID}",
+		"", 0, 0,
+		map[string]any{"compID": competitionID},
+	)
 	if err != nil {
-		log.Printf("[AUTOMATION] Failed to load users: %v", err)
+		log.Printf("[AUTOMATION] Failed to load participants: %v", err)
 		return
 	}
-	allWinnerRecords, _ := app.FindRecordsByFilter("winning_teams", "id != ''", "", 0, 0)
+
+	// Load winners scoped to this competition
+	allWinnerRecords, _ := app.FindRecordsByFilter(
+		"winning_teams",
+		"competition_id = {:compID}",
+		"", 0, 0,
+		map[string]any{"compID": competitionID},
+	)
 	picksCol, err := app.FindCollectionByNameOrId("picks")
 	if err != nil {
 		log.Printf("[AUTOMATION] Failed to find picks collection: %v", err)
@@ -233,17 +281,27 @@ func autoAssignPicks(app core.App, weekNumber int) {
 		}
 	}
 	count := 0
-	for _, user := range allUsers {
-		uid := user.Id
+	for _, participant := range participantRecords {
+		uid := participant.GetString("user_id")
+
+		// Check if pick already exists for this week+competition
 		existing, _ := app.FindRecordsByFilter(
 			"picks",
-			"user_id = '"+uid+"' && week_number = "+strconv.Itoa(weekNumber),
+			"user_id = {:uid} && week_number = {:week} && competition_id = {:compID}",
 			"", 1, 0,
+			map[string]any{"uid": uid, "week": weekNumber, "compID": competitionID},
 		)
 		if len(existing) > 0 {
 			continue
 		}
-		userPickRecords, _ := app.FindRecordsByFilter("picks", "user_id = '"+uid+"'", "", 0, 0)
+
+		// Load picks scoped to this competition only
+		userPickRecords, _ := app.FindRecordsByFilter(
+			"picks",
+			"user_id = {:uid} && competition_id = {:compID}",
+			"", 0, 0,
+			map[string]any{"uid": uid, "compID": competitionID},
+		)
 		glPicks := make([]gamelogic.Pick, len(userPickRecords))
 		for i, p := range userPickRecords {
 			glPicks[i] = gamelogic.Pick{
@@ -260,27 +318,33 @@ func autoAssignPicks(app core.App, weekNumber int) {
 		}
 		available := gamelogic.GetFirstAvailableTeam(usedIDs, glTeams)
 		if available == nil {
-			log.Printf("[AUTOMATION] No teams for user %s", uid)
+			log.Printf("[AUTOMATION] No teams for user %s in competition %s", uid, competitionID)
 			continue
 		}
 		pick := core.NewRecord(picksCol)
 		pick.Set("user_id", uid)
 		pick.Set("team_id", available.ID)
 		pick.Set("week_number", weekNumber)
+		pick.Set("competition_id", competitionID)
 		if err := app.Save(pick); err != nil {
 			log.Printf("[AUTOMATION] Failed to save pick: %v", err)
 			continue
 		}
 		count++
 	}
-	log.Printf("[AUTOMATION] Auto-assigned %d picks for week %d", count, weekNumber)
+	log.Printf("[AUTOMATION] Auto-assigned %d picks for week %d (competition %s)", count, weekNumber, competitionID)
 }
 
-func ensureNextWeekReady(app core.App, currentWeek int, season string, fetcher services.MatchFetcher) {
+func ensureNextWeekReady(app core.App, currentWeek int, season string, fetcher services.MatchFetcher, competitionID string) {
 	nextWeek := currentWeek + 1
-	existing, _ := app.FindRecordsByFilter("deadlines", "week_number = "+strconv.Itoa(nextWeek), "", 1, 0)
+	existing, _ := app.FindRecordsByFilter(
+		"deadlines",
+		"week_number = "+strconv.Itoa(nextWeek)+" && competition_id = {:compID}",
+		"", 1, 0,
+		map[string]any{"compID": competitionID},
+	)
 	if len(existing) == 0 {
-		createDeadline(app, nextWeek, season, fetcher)
+		createDeadline(app, nextWeek, season, fetcher, competitionID)
 	}
-	autoAssignPicks(app, nextWeek)
+	autoAssignPicks(app, nextWeek, competitionID)
 }
