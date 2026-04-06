@@ -944,3 +944,22 @@ input:focus, select:focus {
 .pick-cell--current {
   border: 2px solid var(--color-primary);
 }
+
+/* Competition Switcher */
+.competition-switcher {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 10px 20px 0;
+}
+
+.competition-switcher select {
+  width: 100%;
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 2px solid var(--color-primary);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
