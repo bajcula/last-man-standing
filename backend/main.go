@@ -39,6 +39,7 @@ func main() {
 
 	hooks.RegisterGameweekCron(app, fetcher)
 	hooks.RegisterPicksGuard(app)
+	hooks.RegisterCompetitionRoutes(app)
 
 	if err := app.Start(); err != nil {
 		log.Fatal(err)
