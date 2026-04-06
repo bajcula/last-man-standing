@@ -3,6 +3,7 @@ package migrations
 import (
 	"log"
 
+	"github.com/bajcula/last-man-standing/backend/services"
 	"github.com/pocketbase/pocketbase/core"
 	m "github.com/pocketbase/pocketbase/migrations"
 	"github.com/pocketbase/pocketbase/tools/types"
@@ -113,7 +114,14 @@ func init() {
 		compRecord := core.NewRecord(competitions)
 		compRecord.Set("name", "Round 1")
 		compRecord.Set("status", "active")
-		compRecord.Set("start_week", 1)
+		// Use services.StartWeek so mock mode (MOCK_API=N) gets the right start week
+		startWeek := services.StartWeek
+		// If there are existing deadlines, use the minimum week instead
+		existingDeadlines, _ := app.FindRecordsByFilter("deadlines", "id != ''", "week_number", 1, 0)
+		if len(existingDeadlines) > 0 {
+			startWeek = existingDeadlines[0].GetInt("week_number")
+		}
+		compRecord.Set("start_week", startWeek)
 		if len(admins) > 0 {
 			compRecord.Set("created_by", admins[0].Id)
 		}
