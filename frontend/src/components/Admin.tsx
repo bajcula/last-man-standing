@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { pb } from '../lib/pocketbase';
+import { useCompetition } from '../contexts/CompetitionContext';
 import type { User, Pick, Deadline } from '../types';
 import UserManagement from './admin/UserManagement';
 import GameReset from './admin/GameReset';
+import CompetitionManagement from './admin/CompetitionManagement';
 
 function CurrentWeekPicks() {
+  const { selectedCompetition } = useCompetition();
   const [picks, setPicks] = useState<Pick[]>([]);
   const [currentWeek, setCurrentWeek] = useState(0);
   const [deadline, setDeadline] = useState<Deadline | null>(null);
@@ -17,6 +20,7 @@ function CurrentWeekPicks() {
   const loadCurrentPicks = async () => {
     try {
       const deadlines = await pb.collection('deadlines').getFullList({
+        filter: selectedCompetition ? `competition_id = "${selectedCompetition.id}"` : '',
         sort: '-week_number',
       }) as unknown as Deadline[];
 
@@ -30,7 +34,7 @@ function CurrentWeekPicks() {
       setDeadline(current);
 
       const picksData = await pb.collection('picks').getFullList({
-        filter: `week_number = ${current.week_number}`,
+        filter: `week_number = ${current.week_number}${selectedCompetition ? ` && competition_id = "${selectedCompetition.id}"` : ''}`,
         expand: 'user_id,team_id',
       }) as unknown as Pick[];
 
@@ -140,6 +144,12 @@ function Admin() {
           Manage Users
         </button>
         <button
+          onClick={() => setActiveTab('competitions')}
+          className={`admin-tab ${activeTab === 'competitions' ? 'admin-tab--active' : ''}`}
+        >
+          Competitions
+        </button>
+        <button
           onClick={() => setActiveTab('reset')}
           className={`admin-tab admin-tab--danger ${activeTab === 'reset' ? 'admin-tab--active' : ''}`}
         >
@@ -157,6 +167,10 @@ function Admin() {
           setMessage={setMessage}
           onUserCreated={loadData}
         />
+      )}
+
+      {activeTab === 'competitions' && (
+        <CompetitionManagement users={users} />
       )}
 
       {activeTab === 'reset' && (
