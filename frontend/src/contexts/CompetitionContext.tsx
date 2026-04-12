@@ -35,9 +35,7 @@ export function CompetitionProvider({ children }: { children: ReactNode }) {
 
       let comps: Competition[];
       if (isAdmin) {
-        comps = await pb.collection('competitions').getFullList({
-          sort: '-created',
-        }) as unknown as Competition[];
+        comps = await pb.collection('competitions').getFullList() as unknown as Competition[];
       } else {
         const participations = await pb.collection('competition_participants').getFullList({
           filter: `user_id = "${userId}"`,
@@ -54,7 +52,6 @@ export function CompetitionProvider({ children }: { children: ReactNode }) {
         const filter = compIds.map(id => `id = "${id}"`).join(' || ');
         comps = await pb.collection('competitions').getFullList({
           filter,
-          sort: '-created',
         }) as unknown as Competition[];
       }
 
