@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, NavLink, useLocation } from 'react-router-dom';
 import { pb } from './lib/pocketbase';
 import type { User } from './types';
+import { CompetitionProvider } from './contexts/CompetitionContext';
 import Login from './components/Login';
 import PickTeam from './components/PickTeam';
 import MyPicks from './components/MyPicks';
 import AllPlayersPicksHistory from './components/AllPlayersPicksHistory';
 import Admin from './components/Admin';
+import CompetitionSwitcher from './components/CompetitionSwitcher';
 import ErrorBoundary from './components/ErrorBoundary';
 import NotFound from './components/NotFound';
 import './App.css';
@@ -107,22 +109,25 @@ function App() {
 
   return (
     <Router>
-      <div>
-        <NavBar user={user} logout={logout} />
+      <CompetitionProvider>
+        <div>
+          <NavBar user={user} logout={logout} />
+          <CompetitionSwitcher />
 
-        <div className="container">
-          <ErrorBoundary>
-            <Routes>
-              <Route path="/" element={<Navigate to="/pick" />} />
-              <Route path="/pick" element={<PickTeam />} />
-              <Route path="/my-picks" element={<MyPicks />} />
-              <Route path="/history" element={<AllPlayersPicksHistory />} />
-              <Route path="/admin" element={user.isAdmin ? <Admin /> : <Navigate to="/pick" />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </ErrorBoundary>
+          <div className="container">
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/" element={<Navigate to="/pick" />} />
+                <Route path="/pick" element={<PickTeam />} />
+                <Route path="/my-picks" element={<MyPicks />} />
+                <Route path="/history" element={<AllPlayersPicksHistory />} />
+                <Route path="/admin" element={user.isAdmin ? <Admin /> : <Navigate to="/pick" />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </ErrorBoundary>
+          </div>
         </div>
-      </div>
+      </CompetitionProvider>
     </Router>
   );
 }

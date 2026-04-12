@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { pb } from '../lib/pocketbase';
+import { useCompetition } from '../contexts/CompetitionContext';
 import type { WinningTeam, Team, User, Pick, Deadline } from '../types';
 
 interface PlayerPick {
@@ -24,6 +25,7 @@ interface OrganizedPick {
 }
 
 function AllPlayersPicksHistory() {
+  const { selectedCompetition } = useCompetition();
   const [picksData, setPicksData] = useState<Record<number, Record<string, OrganizedPick>>>({});
   const [players, setPlayers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,8 +34,11 @@ function AllPlayersPicksHistory() {
   const [currentWeek, setCurrentWeek] = useState(0);
 
   useEffect(() => {
-    loadHistoricalData();
-  }, []);
+    if (selectedCompetition) {
+      setLoading(true);
+      loadHistoricalData();
+    }
+  }, [selectedCompetition?.id]);
 
   const isWeekFinished = (week: number): boolean => {
     return winningTeams.some(winner => winner.week_number === week);
@@ -60,7 +65,9 @@ function AllPlayersPicksHistory() {
 
   const calculateUserEliminations = async (users: PlayerData[]): Promise<{ eliminatedWeek: number | null }[]> => {
     try {
-      const allWinners = await pb.collection('winning_teams').getFullList() as unknown as WinningTeam[];
+      const allWinners = await pb.collection('winning_teams').getFullList({
+        filter: selectedCompetition ? `competition_id = "${selectedCompetition.id}"` : '',
+      }) as unknown as WinningTeam[];
 
       return users.map(user => {
         let eliminatedWeek: number | null = null;
@@ -95,7 +102,9 @@ function AllPlayersPicksHistory() {
 
   const loadHistoricalData = async () => {
     try {
+      const compFilter = selectedCompetition ? `competition_id = "${selectedCompetition.id}"` : '';
       const picks = await pb.collection('picks').getFullList({
+        filter: compFilter,
         expand: 'user_id,team_id',
         sort: 'week_number',
       }) as unknown as Pick[];
@@ -119,10 +128,13 @@ function AllPlayersPicksHistory() {
       }
 
       const deadlines = await pb.collection('deadlines').getFullList({
+        filter: selectedCompetition ? `competition_id = "${selectedCompetition.id}"` : '',
         sort: 'week_number',
       }) as unknown as Deadline[];
 
-      const allWinners = await pb.collection('winning_teams').getFullList() as unknown as WinningTeam[];
+      const allWinners = await pb.collection('winning_teams').getFullList({
+        filter: selectedCompetition ? `competition_id = "${selectedCompetition.id}"` : '',
+      }) as unknown as WinningTeam[];
       setWinningTeams(allWinners);
 
       const now = new Date();
@@ -244,7 +256,12 @@ function AllPlayersPicksHistory() {
 
   return (
     <div className="card">
-      <h2>All Players - Historical Picks</h2>
+      <h2>All Players - {selectedCompetition?.name || 'Historical Picks'}</h2>
+      {selectedCompetition?.status === 'ended' && (
+        <div className="message message--success" style={{ marginBottom: '15px' }}>
+          This competition has ended (Weeks {selectedCompetition.start_week}–{selectedCompetition.end_week}).
+        </div>
+      )}
       <p>Shows all picks for weeks where the deadline has passed</p>
 
       {availableWeeks.length === 0 ? (

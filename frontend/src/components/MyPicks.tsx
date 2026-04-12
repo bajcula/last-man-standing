@@ -1,25 +1,33 @@
 import { useState, useEffect } from 'react';
 import { pb } from '../lib/pocketbase';
+import { useCompetition } from '../contexts/CompetitionContext';
 import type { Pick, WinningTeam } from '../types';
 
 function MyPicks() {
+  const { selectedCompetition } = useCompetition();
   const [picks, setPicks] = useState<Pick[]>([]);
   const [winningTeams, setWinningTeams] = useState<WinningTeam[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadPicks();
-  }, []);
+    if (selectedCompetition) {
+      setLoading(true);
+      loadPicks();
+    }
+  }, [selectedCompetition?.id]);
 
   const loadPicks = async () => {
     try {
+      const compFilter = selectedCompetition ? ` && competition_id = "${selectedCompetition.id}"` : '';
       const [picksData, winners] = await Promise.all([
         pb.collection('picks').getFullList({
-          filter: `user_id = "${pb.authStore.model!.id}"`,
+          filter: `user_id = "${pb.authStore.model!.id}"${compFilter}`,
           expand: 'team_id',
           sort: '-week_number',
         }) as unknown as Promise<Pick[]>,
-        pb.collection('winning_teams').getFullList() as unknown as Promise<WinningTeam[]>,
+        pb.collection('winning_teams').getFullList({
+          filter: selectedCompetition ? `competition_id = "${selectedCompetition.id}"` : '',
+        }) as unknown as Promise<WinningTeam[]>,
       ]);
 
       setWinningTeams(winners);
@@ -64,7 +72,7 @@ function MyPicks() {
 
   return (
     <div className="card">
-      <h2>My Picks History</h2>
+      <h2>My Picks History{selectedCompetition ? ` - ${selectedCompetition.name}` : ''}</h2>
 
       {picks.length === 0 ? (
         <p>No picks yet</p>

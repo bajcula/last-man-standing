@@ -19,6 +19,7 @@ export interface Pick extends RecordModel {
   user_id: string;
   team_id: string;
   week_number: number;
+  competition_id: string;
   expand?: {
     user_id?: User;
     team_id?: Team;
@@ -29,11 +30,26 @@ export interface Deadline extends RecordModel {
   week_number: number;
   deadline_time: string;
   is_closed: boolean;
+  competition_id: string;
 }
 
 export interface WinningTeam extends RecordModel {
   week_number: number;
   team_id: string;
+}
+
+export interface Competition extends RecordModel {
+  name: string;
+  status: 'active' | 'ended';
+  start_week: number;
+  end_week: number | null;
+  created_by: string;
+}
+
+export interface CompetitionParticipant extends RecordModel {
+  competition_id: string;
+  user_id: string;
+  is_eliminated: boolean;
 }
 
 // ---- TheSportsDB API types ----

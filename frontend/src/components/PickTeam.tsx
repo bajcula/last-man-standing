@@ -3,9 +3,11 @@ import { pb } from '../lib/pocketbase';
 import { getMatchWinner, getFirstAvailableTeam, checkUserElimination } from '../utils/gameLogic';
 import { fetchRoundMatches, isPostponedStatus } from '../utils/api';
 import { findTeamByApiName } from '../utils/teamMapping';
+import { useCompetition } from '../contexts/CompetitionContext';
 import type { Team, Pick, Deadline, WinningTeam, DisplayMatch, EliminationInfo, DeadlineStatus } from '../types';
 
 function PickTeam() {
+  const { selectedCompetition, competitions } = useCompetition();
   const [teams, setTeams] = useState<Team[]>([]);
   const [myPicks, setMyPicks] = useState<Pick[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
@@ -21,8 +23,11 @@ function PickTeam() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (selectedCompetition) {
+      setLoading(true);
+      loadData();
+    }
+  }, [selectedCompetition?.id]);
 
   const loadData = async () => {
     try {
@@ -31,13 +36,15 @@ function PickTeam() {
       }) as unknown as Team[];
       setTeams(teamsData);
 
+      const compFilter = selectedCompetition ? ` && competition_id = "${selectedCompetition.id}"` : '';
       const picksData = await pb.collection('picks').getFullList({
-        filter: `user_id = "${pb.authStore.model!.id}"`,
+        filter: `user_id = "${pb.authStore.model!.id}"${compFilter}`,
         expand: 'team_id',
       }) as unknown as Pick[];
       setMyPicks(picksData);
 
       const deadlines = await pb.collection('deadlines').getFullList({
+        filter: selectedCompetition ? `competition_id = "${selectedCompetition.id}"` : '',
         sort: '-week_number',
       }) as unknown as Deadline[];
 
@@ -109,6 +116,7 @@ function PickTeam() {
         user_id: pb.authStore.model!.id,
         team_id: availableTeam.id,
         week_number: weekNumber,
+        competition_id: selectedCompetition?.id || '',
       });
 
       console.log(`Auto-assigned ${availableTeam.team_name} for Week ${weekNumber}`);
@@ -134,7 +142,9 @@ function PickTeam() {
         return;
       }
 
-      const allWinners = await pb.collection('winning_teams').getFullList() as unknown as WinningTeam[];
+      const allWinners = await pb.collection('winning_teams').getFullList({
+        filter: selectedCompetition ? `competition_id = "${selectedCompetition.id}"` : '',
+      }) as unknown as WinningTeam[];
       if (allWinners.length === 0) {
         setIsEliminated(false);
         setEliminationInfo(null);
@@ -158,7 +168,7 @@ function PickTeam() {
 
     try {
       const existingPicks = await pb.collection('picks').getFullList({
-        filter: `user_id = "${pb.authStore.model!.id}" && week_number = ${currentWeek}`,
+        filter: `user_id = "${pb.authStore.model!.id}" && week_number = ${currentWeek}${selectedCompetition ? ` && competition_id = "${selectedCompetition.id}"` : ''}`,
       });
 
       if (existingPicks.length > 0) {
@@ -170,6 +180,7 @@ function PickTeam() {
           user_id: pb.authStore.model!.id,
           team_id: selectedTeam,
           week_number: currentWeek,
+          competition_id: selectedCompetition?.id || '',
         });
       }
 
@@ -287,7 +298,7 @@ function PickTeam() {
 
   return (
     <div className="card">
-      <h2>Pick Your Team - Week {currentWeek}</h2>
+      <h2>Pick Your Team - Week {currentWeek}{selectedCompetition && competitions.length > 1 ? ` (${selectedCompetition.name})` : ''}</h2>
 
       {deadline && (
         <div className={`deadline-bar ${isDeadlinePassed() ? 'deadline-bar--passed' : 'deadline-bar--open'}`}>
